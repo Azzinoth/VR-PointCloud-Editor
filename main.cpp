@@ -1,0 +1,67 @@
+#include "SubSystems/FocalEngine/FEngine.h"
+using namespace FocalEngine;
+
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
+{
+	ENGINE.InitWindow(1270, 720, "Cloud Bathymetry");
+	ENGINE.SetVsyncEnabled(false);
+	THREAD_POOL.SetConcurrentThreadCount(10);
+
+	const int FrameCountTillMeasure = 20;
+	double CPUFrameDurations[FrameCountTillMeasure] = { 0.0f };
+	double GPUFrameDurations[FrameCountTillMeasure] = { 0.0f };
+	int FrameCounter = 0;
+
+	double AverageCpuFrameDuration = 0.0;
+	double AverageGpuFrameDuration = 0.0;
+
+	while (ENGINE.IsNotTerminated())
+	{
+		ENGINE.BeginFrame();
+		ENGINE.Render();
+		ENGINE.EndFrame();
+
+		// CPU and GPU Time
+		CPUFrameDurations[FrameCounter] = ENGINE.GetCpuTime();
+		GPUFrameDurations[FrameCounter] = ENGINE.GetGpuTime();
+		FrameCounter++;
+
+		if (FrameCounter > FrameCountTillMeasure - 1)
+		{
+			AverageCpuFrameDuration = 0.0f;
+			AverageGpuFrameDuration = 0.0f;
+			for (size_t i = 0; i < FrameCountTillMeasure; i++)
+			{
+				AverageCpuFrameDuration += CPUFrameDurations[i];
+				AverageGpuFrameDuration += GPUFrameDurations[i];
+			}
+			AverageCpuFrameDuration /= FrameCountTillMeasure;
+			AverageGpuFrameDuration /= FrameCountTillMeasure;
+
+			FrameCounter = 0;
+		}
+
+		std::string CPUMs = std::to_string(AverageCpuFrameDuration);
+		CPUMs.erase(CPUMs.begin() + 4, CPUMs.end());
+
+		std::string GPUMs = std::to_string(AverageGpuFrameDuration);
+		GPUMs.erase(GPUMs.begin() + 4, GPUMs.end());
+
+		std::string FrameMs = std::to_string(AverageCpuFrameDuration + AverageGpuFrameDuration);
+		FrameMs.erase(FrameMs.begin() + 4, FrameMs.end());
+
+		std::string caption = "CPU time : ";
+		caption += CPUMs;
+		caption += " ms";
+		caption += "  GPU time : ";
+		caption += GPUMs;
+		caption += " ms";
+		caption += "  Frame time : ";
+		caption += FrameMs;
+		caption += " ms";
+
+		ENGINE.SetWindowCaption(caption.c_str());
+	}
+
+	return 0;
+}

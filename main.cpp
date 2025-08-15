@@ -1,6 +1,8 @@
 #include "SubSystems/FocalEngine/FEngine.h"
 using namespace FocalEngine;
 
+#include "ThirdParty/ImFileDialog/ImFileDialog.h"
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	ENGINE.InitWindow(1270, 720, "Cloud Bathymetry");
@@ -15,10 +17,47 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	double AverageCpuFrameDuration = 0.0;
 	double AverageGpuFrameDuration = 0.0;
 
+	ifd::FileDialog::Instance().CreateTexture = [](uint8_t* Data, int Width, int Height, char TextureFormat) -> void* {
+		GLuint TextureID;
+
+		glGenTextures(1, &TextureID);
+		glBindTexture(GL_TEXTURE_2D, TextureID);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, Width, Height, 0, (TextureFormat == 0) ? GL_BGRA : GL_RGBA, GL_UNSIGNED_BYTE, Data);
+		glGenerateMipmap(GL_TEXTURE_2D);
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+		return (void*)TextureID;
+	};
+
+	ifd::FileDialog::Instance().DeleteTexture = [](void* TexturePointer) {
+		GLuint texID = (GLuint)((uintptr_t)TexturePointer);
+		glDeleteTextures(1, &texID);
+	};
+
 	while (ENGINE.IsNotTerminated())
 	{
 		ENGINE.BeginFrame();
 		ENGINE.Render();
+
+		static bool bOpenFileDialog = false;
+		if (!bOpenFileDialog)
+		{
+			ifd::FileDialog::Instance().Open("TextureOpenDialog", "Open a texture", "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga){.png,.jpg,.jpeg,.bmp,.tga},.*");
+			bOpenFileDialog = true;
+		}
+
+		if (ifd::FileDialog::Instance().IsDone("TextureOpenDialog")) {
+			if (ifd::FileDialog::Instance().HasResult()) {
+				std::string res = ifd::FileDialog::Instance().GetResult().u8string();
+				printf("OPEN[%s]\n", res.c_str());
+			}
+			ifd::FileDialog::Instance().Close();
+		}
+
 		ENGINE.EndFrame();
 
 		// CPU and GPU Time

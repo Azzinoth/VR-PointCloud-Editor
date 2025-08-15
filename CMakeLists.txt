@@ -48,6 +48,11 @@ if(USE_STATIC_RUNTIME)
     )
 endif()
 
+file(GLOB ImFileDialog_SRC
+	"ThirdParty/ImFileDialog/ImFileDialog.cpp"
+	"ThirdParty/ImFileDialog/ImFileDialog.h"
+)
+
 file(GLOB Main_SRC
 	"main.cpp"
 )
@@ -66,7 +71,9 @@ endif()
 
 # add the executable
 add_executable(VR-PointCloud-Editor WIN32
-	                                ${Main_SRC}		  
+	                                ${Main_SRC}
+									# *************** THIRD_PARTY ***************
+									${ImFileDialog_SRC}
 )
 
 target_link_libraries(VR-PointCloud-Editor 
@@ -76,6 +83,9 @@ target_link_libraries(VR-PointCloud-Editor
 )
 
 source_group("Source Files" FILES ${Main_SRC})
+# *************** THIRD_PARTY ***************
+source_group("Source Files/ThirdParty/ImFileDialog" FILES ${ImFileDialog_SRC})
+
 if(USE_STATIC_RUNTIME)
 	source_group("Source Files/FocalEngine/2B7956623302254F620A675F" FILES ${EXTRACTED_NATIVE_SCRIPTS})
 endif()

@@ -53,6 +53,16 @@ file(GLOB ImFileDialog_SRC
 	"ThirdParty/ImFileDialog/ImFileDialog.h"
 )
 
+file(GLOB SceneResources_SRC
+	"SubSystems/SceneResources/SceneResources.h"
+	"SubSystems/SceneResources/SceneResources.cpp"
+)
+
+file(GLOB VRManager_SRC
+	"SubSystems/VRManager/VRManager.h"
+	"SubSystems/VRManager/VRManager.cpp"
+)
+
 file(GLOB Main_SRC
 	"main.cpp"
 )
@@ -72,6 +82,8 @@ endif()
 # add the executable
 add_executable(VR-PointCloud-Editor WIN32
 	                                ${Main_SRC}
+									${SceneResources_SRC}
+									${VRManager_SRC}
 									# *************** THIRD_PARTY ***************
 									${ImFileDialog_SRC}
 )
@@ -83,6 +95,8 @@ target_link_libraries(VR-PointCloud-Editor
 )
 
 source_group("Source Files" FILES ${Main_SRC})
+source_group("Source Files/SubSystems/SceneResources" FILES ${SceneResources_SRC})
+source_group("Source Files/SubSystems/VRManager" FILES ${VRManager_SRC})
 # *************** THIRD_PARTY ***************
 source_group("Source Files/ThirdParty/ImFileDialog" FILES ${ImFileDialog_SRC})
 
@@ -99,3 +113,11 @@ include_directories(
 	${BASICAPP_DIR}
 	${FOCAL_ENGINE_THIRD_PARTY_DIR}
 )
+
+if(LASZIP_FINAL_DLL)
+	add_custom_command(TARGET VR-PointCloud-Editor POST_BUILD
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${LASZIP_FINAL_DLL}
+        "$<TARGET_FILE_DIR:VR-PointCloud-Editor>"
+	)
+endif()

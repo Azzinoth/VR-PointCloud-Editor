@@ -1,7 +1,5 @@
-#include "SubSystems/FocalEngine/FEngine.h"
+#include "SubSystems/VRManager/VRManager.h"
 using namespace FocalEngine;
-
-#include "ThirdParty/ImFileDialog/ImFileDialog.h"
 
 void ShowTransformConfiguration(FEObject* Object, FETransformComponent* Transform, float PositionStep = 0.001f)
 {
@@ -60,154 +58,93 @@ void ShowTransformConfiguration(FEObject* Object, FETransformComponent* Transfor
 	Transform->SetScale(Scale, FE_LOCAL_SPACE);
 }
 
-FEScene* MainScene = nullptr;
-FEEntity* MainCamera = nullptr;
-FEEntity* Sun = nullptr;
-
-FEEntity* VRUIEntity = nullptr;
-FEVirtualUI* CurrentVirtualUI = nullptr;
-void VRInterfaceRender(FEVirtualUI* CurrentVirtualUI);
-
-FEEntity* SelectionRayEntity = nullptr;
-
-void VRInterfaceRender(FEVirtualUI* CurrentVirtualUI)
-{
-	static bool bOpenFileDialog = false;
-	if (!bOpenFileDialog)
-	{
-		ifd::FileDialog::Instance().Open("PointCloudOpenDialog", "Open a point cloud", "Point cloud file (*.laz;*.las){.laz,.las},.*");
-		bOpenFileDialog = true;
-	}
-
-	ImGui::SetNextWindowPos(ImVec2(0, 0));
-	if (ifd::FileDialog::Instance().IsDone("PointCloudOpenDialog"))
-	{
-		if (ifd::FileDialog::Instance().HasResult())
-		{
-			std::string Result = ifd::FileDialog::Instance().GetResult().u8string();
-			printf("OPEN[%s]\n", Result.c_str());
-		}
-
-		ifd::FileDialog::Instance().Close();
-	}
-}
-
-bool TryToAttachEntities(FEEntity* WhatToAttach, FEEntity* WhereToAttach, bool bPreserveWorldTransform)
-{
-	if (WhereToAttach == nullptr || WhatToAttach == nullptr)
-		return false;
-
-	if (WhereToAttach->GetParentScene() != WhatToAttach->GetParentScene())
-		return false;
-
-	FEScene* SceneToUse = WhereToAttach->GetParentScene();
-
-	FENaiveSceneGraphNode* WhereToAttachNode = SceneToUse->SceneGraph.GetNodeByEntityID(WhereToAttach->GetObjectID());
-	FENaiveSceneGraphNode* WhatToAttachNode = SceneToUse->SceneGraph.GetNodeByEntityID(WhatToAttach->GetObjectID());
-
-	if (WhereToAttachNode == nullptr || WhatToAttachNode == nullptr)
-		return false;
-
-	return SceneToUse->SceneGraph.MoveNode(WhatToAttachNode->GetObjectID(), WhereToAttachNode->GetObjectID(), bPreserveWorldTransform);
-}
-
-bool AttachVirtualUIToController()
-{
-	if (OpenXR_MANAGER.GetLeftControllerEntity() == nullptr)
-		return false;
-
-	TryToAttachEntities(VRUIEntity, OpenXR_MANAGER.GetLeftControllerEntity(), false);
-	TryToAttachEntities(SelectionRayEntity, OpenXR_MANAGER.GetRightControllerEntity(), false);
-
-	return true;
-}
 
 void SetupScene()
 {
-	MainScene = SCENE_MANAGER.CreateScene("Main scene", "", FESceneFlag::Active | FESceneFlag::Renderable | FESceneFlag::GameMode);
-	MainCamera = MainScene->CreateEntity("Main camera");
+	//MainScene = SCENE_MANAGER.CreateScene("Main scene", "", FESceneFlag::Active | FESceneFlag::Renderable | FESceneFlag::GameMode);
+	//MainCamera = MainScene->CreateEntity("Main camera");
 
-	FEPrefab* FreeCameraPrefab = RESOURCE_MANAGER.GetPrefab("4575527C773848040760656F");
-	std::vector<FEEntity*> AddedEntities = SCENE_MANAGER.InstantiatePrefab(FreeCameraPrefab, MainScene, true);
-	MainCamera = AddedEntities[0];
-	CAMERA_SYSTEM.SetMainCamera(MainCamera);
-	CAMERA_SYSTEM.SetCameraViewport(MainCamera, ENGINE.GetDefaultViewport()->GetID());
+	//FEPrefab* FreeCameraPrefab = RESOURCE_MANAGER.GetPrefab("4575527C773848040760656F");
+	//std::vector<FEEntity*> AddedEntities = SCENE_MANAGER.InstantiatePrefab(FreeCameraPrefab, MainScene, true);
+	//MainCamera = AddedEntities[0];
+	//CAMERA_SYSTEM.SetMainCamera(MainCamera);
+	//CAMERA_SYSTEM.SetCameraViewport(MainCamera, ENGINE.GetDefaultViewport()->GetID());
 
-	CAMERA_SYSTEM.SetCameraRenderingPipeline(MainCamera, FERenderingPipeline::Forward_Simplified);
-	FECameraComponent& CameraComponent = MainCamera->GetComponent<FECameraComponent>();
-	CameraComponent.SetClearColor(glm::vec4(0.0f));
-	CameraComponent.SetNearPlane(0.01f);
-	CameraComponent.SetFarPlane(10000.0f);
-	//CameraComponent.SetActive(false);
+	//CAMERA_SYSTEM.SetCameraRenderingPipeline(MainCamera, FERenderingPipeline::Forward_Simplified);
+	//FECameraComponent& CameraComponent = MainCamera->GetComponent<FECameraComponent>();
+	//CameraComponent.SetClearColor(glm::vec4(0.0f));
+	//CameraComponent.SetNearPlane(0.01f);
+	//CameraComponent.SetFarPlane(10000.0f);
+	////CameraComponent.SetActive(false);
 
-	Sun = MainScene->CreateEntity("Sun");
-	Sun->GetComponent<FETransformComponent>().SetRotation(glm::vec3(0.0f, 45.0f, 45.0f));
-	Sun->AddComponent<FELightComponent>(FE_DIRECTIONAL_LIGHT);
-	FELightComponent& SunLightComponent = Sun->GetComponent<FELightComponent>();
-	SunLightComponent.SetCastShadows(false);
-	SunLightComponent.SetIntensity(2.0f);
+	//Sun = MainScene->CreateEntity("Sun");
+	//Sun->GetComponent<FETransformComponent>().SetRotation(glm::vec3(0.0f, 45.0f, 45.0f));
+	//Sun->AddComponent<FELightComponent>(FE_DIRECTIONAL_LIGHT);
+	//FELightComponent& SunLightComponent = Sun->GetComponent<FELightComponent>();
+	//SunLightComponent.SetCastShadows(false);
+	//SunLightComponent.SetIntensity(2.0f);
 
-	// Selection Ray
-	FEMesh* CylinderMesh = RESOURCE_MANAGER.LoadFEMesh("Resources//Cylinder.model");
+	//// Selection Ray
+	//FEMesh* CylinderMesh = RESOURCE_MANAGER.LoadFEMesh("Resources//Cylinder.model");
 
-	FEShader* SolidColorShader = RESOURCE_MANAGER.GetShader("6917497A5E0C05454876186F"/*"FESolidColorShader"*/);
-	// FIX ME: Work of this shader is not correct.
-	SolidColorShader->UpdateUniformData("BrightnessFactor", 1.0f);
+	//FEShader* SolidColorShader = RESOURCE_MANAGER.GetShader("6917497A5E0C05454876186F"/*"FESolidColorShader"*/);
+	//// FIX ME: Work of this shader is not correct.
+	//SolidColorShader->UpdateUniformData("BrightnessFactor", 1.0f);
 
-	FEMaterial* SelectionRayMaterial = RESOURCE_MANAGER.CreateMaterial();
-	SelectionRayMaterial->Shader = SolidColorShader;
-	SelectionRayMaterial->SetBaseColor(glm::vec3(0.9f, 0.9f, 0.9f));
-	FEGameModel* SelectionRayGameModel = RESOURCE_MANAGER.CreateGameModel(CylinderMesh, SelectionRayMaterial);
-	SelectionRayGameModel->SetName("White Cylinder Game Model");
+	//FEMaterial* SelectionRayMaterial = RESOURCE_MANAGER.CreateMaterial();
+	//SelectionRayMaterial->Shader = SolidColorShader;
+	//SelectionRayMaterial->SetBaseColor(glm::vec3(0.9f, 0.9f, 0.9f));
+	//FEGameModel* SelectionRayGameModel = RESOURCE_MANAGER.CreateGameModel(CylinderMesh, SelectionRayMaterial);
+	//SelectionRayGameModel->SetName("White Cylinder Game Model");
 
-	SelectionRayEntity = MainScene->CreateEntity("Selection Ray Entity");
-	SelectionRayEntity->AddComponent<FEGameModelComponent>(SelectionRayGameModel);
-	FEGameModelComponent& WhiteCylinderGameModelComponent = SelectionRayEntity->GetComponent<FEGameModelComponent>();
-	WhiteCylinderGameModelComponent.SetReceivingShadows(false);
-	SelectionRayEntity->SetComponentVisible(ComponentVisibilityType::GAME_MODEL, false);
-	FETransformComponent& SelectionRayTransform = SelectionRayEntity->GetComponent<FETransformComponent>();
-	SelectionRayTransform.SetPosition(glm::vec3(0.0f, 0.0f, -0.052f));
-	SelectionRayTransform.SetScale(glm::vec3(0.00045f, 0.03f, 0.00045f));
-	SelectionRayTransform.SetRotation(glm::vec3(90.0f, 0.0f, 0.0f));
+	//SelectionRayEntity = MainScene->CreateEntity("Selection Ray Entity");
+	//SelectionRayEntity->AddComponent<FEGameModelComponent>(SelectionRayGameModel);
+	//FEGameModelComponent& WhiteCylinderGameModelComponent = SelectionRayEntity->GetComponent<FEGameModelComponent>();
+	//WhiteCylinderGameModelComponent.SetReceivingShadows(false);
+	//SelectionRayEntity->SetComponentVisible(ComponentVisibilityType::GAME_MODEL, false);
+	//FETransformComponent& SelectionRayTransform = SelectionRayEntity->GetComponent<FETransformComponent>();
+	//SelectionRayTransform.SetPosition(glm::vec3(0.0f, 0.0f, -0.052f));
+	//SelectionRayTransform.SetScale(glm::vec3(0.00045f, 0.03f, 0.00045f));
+	//SelectionRayTransform.SetRotation(glm::vec3(90.0f, 0.0f, 0.0f));
 
-	// Temporary
-	SelectionRayEntity->SetComponentVisible(ComponentVisibilityType::GAME_MODEL, true);
+	//// Temporary
+	//SelectionRayEntity->SetComponentVisible(ComponentVisibilityType::GAME_MODEL, true);
 }
 
-std::pair<glm::vec3, glm::vec3> GetControllerInteractionRay(bool bLeftController)
-{
-	FEEntity* ControllerEntity = bLeftController ? OpenXR_MANAGER.GetLeftControllerEntity() : OpenXR_MANAGER.GetRightControllerEntity();
-	if (ControllerEntity == nullptr)
-		return std::make_pair(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f));
+//std::pair<glm::vec3, glm::vec3> GetControllerInteractionRay(bool bLeftController)
+//{
+//	FEEntity* ControllerEntity = bLeftController ? OpenXR_MANAGER.GetLeftControllerEntity() : OpenXR_MANAGER.GetRightControllerEntity();
+//	if (ControllerEntity == nullptr)
+//		return std::make_pair(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f));
+//
+//	FETransformComponent& ControllerTransform = ControllerEntity->GetComponent<FETransformComponent>();
+//	glm::vec3 ControllerPosition = ControllerTransform.GetPosition(FE_WORLD_SPACE);
+//	glm::quat ControllerOrientation = ControllerTransform.GetQuaternion();
+//	glm::vec3 InteractionRay = glm::vec3(0.0f, 0.0f, -1.0f);
+//	InteractionRay = glm::vec3(glm::toMat4(ControllerOrientation) * glm::vec4(InteractionRay, 1.0f));
+//
+//	return std::make_pair(ControllerPosition, InteractionRay);
+//}
 
-	FETransformComponent& ControllerTransform = ControllerEntity->GetComponent<FETransformComponent>();
-	glm::vec3 ControllerPosition = ControllerTransform.GetPosition(FE_WORLD_SPACE);
-	glm::quat ControllerOrientation = ControllerTransform.GetQuaternion();
-	glm::vec3 InteractionRay = glm::vec3(0.0f, 0.0f, -1.0f);
-	InteractionRay = glm::vec3(glm::toMat4(ControllerOrientation) * glm::vec4(InteractionRay, 1.0f));
-
-	return std::make_pair(ControllerPosition, InteractionRay);
-}
-
-void OnRightTriggerPress()
-{
-	CurrentVirtualUI->InvokeMouseButton(ImGuiMouseButton_Left, GLFW_PRESS);
-}
-
-void OnRightTriggerRelease()
-{
-	CurrentVirtualUI->InvokeMouseButton(ImGuiMouseButton_Left, GLFW_RELEASE);
-}
-
-void OnLeftTriggerPress()
-{
-	
-}
-
-void OnLeftTriggerRelease()
-{
-	
-}
+//void OnRightTriggerPress()
+//{
+//	CurrentVirtualUI->InvokeMouseButton(ImGuiMouseButton_Left, GLFW_PRESS);
+//}
+//
+//void OnRightTriggerRelease()
+//{
+//	CurrentVirtualUI->InvokeMouseButton(ImGuiMouseButton_Left, GLFW_RELEASE);
+//}
+//
+//void OnLeftTriggerPress()
+//{
+//	
+//}
+//
+//void OnLeftTriggerRelease()
+//{
+//	
+//}
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
@@ -223,82 +160,22 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	double AverageCpuFrameDuration = 0.0;
 	double AverageGpuFrameDuration = 0.0;
 
-	ifd::FileDialog::Instance().CreateTexture = [](uint8_t* Data, int Width, int Height, char TextureFormat) -> void* {
-		GLuint TextureID;
-
-		glGenTextures(1, &TextureID);
-		glBindTexture(GL_TEXTURE_2D, TextureID);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, Width, Height, 0, (TextureFormat == 0) ? GL_BGRA : GL_RGBA, GL_UNSIGNED_BYTE, Data);
-		glGenerateMipmap(GL_TEXTURE_2D);
-		glBindTexture(GL_TEXTURE_2D, 0);
-
-		return (void*)TextureID;
-	};
-
-	ifd::FileDialog::Instance().DeleteTexture = [](void* TexturePointer) {
-		GLuint texID = (GLuint)((uintptr_t)TexturePointer);
-		glDeleteTextures(1, &texID);
-	};
-
-	SetupScene();
+	SCENE_RESOURCES.Initialize();
 	bool bIsVRActive = ENGINE.EnableVR();
-
-	glm::vec2 FileDialogResolution = glm::vec2(600.0f, 400.0f);
-
-	VRUIEntity = MainScene->CreateEntity("VR Interface");
-	FETransformComponent& VRUITransform = VRUIEntity->GetComponent<FETransformComponent>();
-	VRUITransform.SetPosition(glm::vec3(0.0f, 0.007f, -0.046f));
-	VRUITransform.SetRotation(glm::vec3(0.0f, 90.0f, 90.0f));
-	float AspectRatio = FileDialogResolution.x / FileDialogResolution.y;
-	float BaseScale = 0.0375f;
-	glm::vec3 Scale = glm::vec3(BaseScale / AspectRatio, BaseScale, BaseScale);
-	VRUITransform.SetScale(Scale);
-
-	VRUIEntity->AddComponent<FEVirtualUIComponent>();
-	FEVirtualUIComponent& VirtualUIComponent = VRUIEntity->GetComponent<FEVirtualUIComponent>();
-	VirtualUIComponent.SetCanvasResolution(FileDialogResolution);
-	VirtualUIComponent.SetRenderFunction(VRInterfaceRender);
-	VirtualUIComponent.SetWindowToListen(APPLICATION.GetMainWindow());
-	VirtualUIComponent.SetMouseButtonPassThrough(true);
-	VirtualUIComponent.SetMouseMovePassThrough(true);
-	VirtualUIComponent.SetCharPassThrough(true);
-	VirtualUIComponent.SetKeyPassThrough(true);
-	VirtualUIComponent.SetScrollPassThrough(true);
-	VirtualUIComponent.SetInputActive(true); // by default should be false
-	CurrentVirtualUI = VirtualUIComponent.GetVirtualUI();
-
-	FEOpenXR_INPUT.SetRightTriggerPressCallBack(OnRightTriggerPress);
-	FEOpenXR_INPUT.SetRightTriggerReleaseCallBack(OnRightTriggerRelease);
-
-	FEOpenXR_INPUT.SetLeftTriggerPressCallBack(OnLeftTriggerPress);
-	FEOpenXR_INPUT.SetLeftTriggerReleaseCallBack(OnLeftTriggerRelease);
+	VR_MANAGER.Initialize();
 
 	while (ENGINE.IsNotTerminated())
 	{
 		ENGINE.BeginFrame();
 		ENGINE.Render();
 
-		static bool bAttached = false;
-		if (OpenXR_MANAGER.GetLeftControllerEntity() != nullptr && !bAttached)
+		VR_MANAGER.Update();
+
+		FEEntity* SelectionRayEntity = SCENE_RESOURCES.GetInteractionRayEntity();
+		if (SelectionRayEntity != nullptr)
 		{
-			bAttached = AttachVirtualUIToController();
-		}
-
-		if (bAttached)
-		{
-			FETransformComponent& VRInterfaceTransform = VRUIEntity->GetComponent<FETransformComponent>();
-			ShowTransformConfiguration(VRUIEntity, &VRInterfaceTransform);
-
-			/*FETransformComponent& SelectionRayTransform = SelectionRayEntity->GetComponent<FETransformComponent>();
-			ShowTransformConfiguration(SelectionRayEntity, &SelectionRayTransform);*/
-
-			std::pair<glm::vec3, glm::vec3> InteractionRayData = GetControllerInteractionRay(false);
-			VirtualUIComponent.UpdateInteractionRay(InteractionRayData.first, InteractionRayData.second);
-			VirtualUIComponent.UpdateRayIntersection();
+			FETransformComponent& SelectionRayTransform = SelectionRayEntity->GetComponent<FETransformComponent>();
+			ShowTransformConfiguration(SelectionRayEntity, &SelectionRayTransform);
 		}
 
 		ENGINE.EndFrame();

@@ -38,7 +38,7 @@ void SceneResources::SetupScene()
 	CameraComponent.SetClearColor(glm::vec4(0.0f));
 	CameraComponent.SetNearPlane(0.01f);
 	CameraComponent.SetFarPlane(10000.0f);
-	CameraComponent.SetActive(false);
+	CameraComponent.SetRenderingEnabled(false);
 
 	Sun = SCENE_RESOURCES.GetMainScene()->CreateEntity("Sun");
 	Sun->GetComponent<FETransformComponent>().SetRotation(glm::vec3(0.0f, 45.0f, 45.0f));
@@ -67,6 +67,11 @@ void SceneResources::SetupScene()
 		GLuint texID = (GLuint)((uintptr_t)TexturePointer);
 		glDeleteTextures(1, &texID);
 	};
+
+	DeletePointsComputeShader = RESOURCE_MANAGER.CreateShader("DeletePointsComputeShader",
+															  nullptr, nullptr,
+															  nullptr, nullptr,
+															  nullptr, RESOURCE_MANAGER.LoadGLSL("Resources//PointCloudShaders//PointCloud_DeletePoints_CS.glsl").c_str());
 }
 
 void SceneResources::InitResourses()
@@ -171,45 +176,136 @@ bool SceneResources::TryToAttachEntities(FEEntity* WhatToAttach, FEEntity* Where
 	return SceneToUse->SceneGraph.MoveNode(WhatToAttachNode->GetObjectID(), WhereToAttachNode->GetObjectID(), bPreserveWorldTransform);
 }
 
-//void SceneResources::FlagPoints(glm::vec3 Center, float Radius)
-//{
-//	if (AllSoundingsEntity == nullptr)
-//		return;
-//
-//	PointCloudComputeShader->Start();
-//	PointCloudComputeShader->UpdateUniformData("FEWorldMatrix", AllSoundingsEntity->GetComponent<FETransformComponent>().GetWorldMatrix());
-//	PointCloudComputeShader->UpdateUniformData("Center", Center);
-//	PointCloudComputeShader->UpdateUniformData("Radius", Radius);
-//	PointCloudComputeShader->LoadUniformsDataToGPU();
-//
-//	FEPointCloud* PointCloud = AllSoundingsEntity->GetComponent<FEPointCloudComponent>().GetPointCloud();
-//	GLuint ComputeShaderBuffer;
-//	if (PointCloud->GetComputeShaderBuffer(ComputeShaderBuffer))
-//	{
-//		FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, ComputeShaderBuffer));
-//		FE_GL_ERROR(glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, ComputeShaderBuffer));
-//
-//		PointCloudComputeShader->Dispatch(static_cast<GLuint>((PointCloud->GetPointCount() / 1024) + 1), 1, 1);
-//		FE_GL_ERROR(glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT));
-//	}
-//}
-
-void SceneResources::LoadPointCloudFromFile(const std::string& FilePath)
+void SceneResources::DeletePoints(glm::vec3 Center, float Radius)
 {
-	FEPointCloud* LoadedPointCloud = RESOURCE_MANAGER.ImportPointCloud(FilePath);
+	if (PointCloudEntity == nullptr)
+		return;
+
+	for (size_t i = 0; i < VR_MANAGER.SphereCursorEntities.size(); i++)
+	{
+		if (VR_MANAGER.SphereCursorEntities[i] == nullptr)
+			return;
+
+		if (!VR_MANAGER.SphereCursorEntities[i]->IsComponentVisible(ComponentVisibilityType::GAME_MODEL))
+			return;
+	}
+
+	DeletePointsComputeShader->Start();
+
+	uint32_t Zero = 0;
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, VR_MANAGER.DeletionFlagBuffer);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, VR_MANAGER.DeletionFlagBuffer);
+	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(uint32_t), &Zero);
+	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+	DeletePointsComputeShader->UpdateUniformData("FEWorldMatrix", PointCloudEntity->GetComponent<FETransformComponent>().GetWorldMatrix());
+	DeletePointsComputeShader->UpdateUniformData("Center", Center);
+	DeletePointsComputeShader->UpdateUniformData("Radius", Radius);
+	DeletePointsComputeShader->LoadUniformsDataToGPU();
+
+	FEPointCloud* PointCloud = PointCloudEntity->GetComponent<FEPointCloudComponent>().GetPointCloud();
+	static const size_t MaxBytesPerBuffer = UINT32_MAX - 1;
+	static const size_t MaxPointsPerBuffer = MaxBytesPerBuffer / sizeof(FEPointCloudVertex);
+	
+	if (PointCloud->GetPointCount() > MaxPointsPerBuffer)
+	{
+		std::vector<GLuint> ComputeShaderBuffers;
+		PointCloud->GetComputeShaderBuffers(ComputeShaderBuffers);
+
+		size_t BufferIndex = 0;
+		for (size_t i = 0; i < PointCloud->GetPointCount(); i += MaxPointsPerBuffer)
+		{
+			if (BufferIndex < ComputeShaderBuffers.size())
+			{
+				FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, ComputeShaderBuffers[BufferIndex]));
+				FE_GL_ERROR(glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, ComputeShaderBuffers[BufferIndex]));
+				BufferIndex++;
+
+				// Calculate the number of points for the current buffer
+				size_t NumberOfPoints = std::min(MaxPointsPerBuffer, PointCloud->GetPointCount() - i);
+				DeletePointsComputeShader->Dispatch(static_cast<GLuint>((NumberOfPoints / 1024) + 1), 1, 1);
+				FE_GL_ERROR(glMemoryBarrier(GL_ALL_BARRIER_BITS));
+			}
+		}
+	}
+	else
+	{
+		GLuint ComputeShaderBuffer;
+		if (PointCloud->GetComputeShaderBuffer(ComputeShaderBuffer))
+		{
+			FE_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, ComputeShaderBuffer));
+			FE_GL_ERROR(glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, ComputeShaderBuffer));
+
+			DeletePointsComputeShader->Dispatch(static_cast<GLuint>((PointCloud->GetPointCount() / 1024) + 1), 1, 1);
+			FE_GL_ERROR(glMemoryBarrier(GL_ALL_BARRIER_BITS));
+		}
+	}
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, VR_MANAGER.DeletionFlagBuffer);
+	uint32_t* DeletionFlagValue = (uint32_t*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+	bool bWasAnyPointDeleted = (*DeletionFlagValue > 0);
+	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+
+	if (bWasAnyPointDeleted)
+		FEOpenXR_INPUT.TriggerHapticFeedback(0.1f, 0.1f, 0.2f, false);
+}
+
+#include "../VRManager/VRManager.h"
+void SceneResources::CallBackWhenPointCloudIsLoaded(FEPointCloud* LoadedPointCloud)
+{
 	if (LoadedPointCloud != nullptr)
 	{
 		LoadedPointCloud->SetAdvancedRenderingEnabled(true);
-		if (PointCloudEntity == nullptr)
-			PointCloudEntity = MainScene->CreateEntity("Point Cloud Entity");
+		if (SCENE_RESOURCES.PointCloudEntity == nullptr)
+			SCENE_RESOURCES.PointCloudEntity = SCENE_RESOURCES.MainScene->CreateEntity("Point Cloud Entity");
 
-		if (PointCloudEntity->HasComponent<FEPointCloudComponent>())
+		if (SCENE_RESOURCES.PointCloudEntity->HasComponent<FEPointCloudComponent>())
 		{
-			PointCloudEntity->GetComponent<FEPointCloudComponent>().SetPointCloud(LoadedPointCloud);
+			SCENE_RESOURCES.PointCloudEntity->GetComponent<FEPointCloudComponent>().SetPointCloud(LoadedPointCloud);
 		}
 		else
 		{
-			PointCloudEntity->AddComponent<FEPointCloudComponent>(LoadedPointCloud);
+			SCENE_RESOURCES.PointCloudEntity->AddComponent<FEPointCloudComponent>(LoadedPointCloud);
 		}
+
+		VR_MANAGER.SetHaveActivePointCloud(true, SCENE_RESOURCES.PointCloudEntity);
 	}
+	else
+	{
+		VR_MANAGER.SetHaveActivePointCloud(false, nullptr);
+	}
+
+	VR_MANAGER.SetLoadingInProgress(false);
+}
+
+void SceneResources::LoadPointCloudFromFile(const std::string& FilePath)
+{
+	auto ConvertBlackPointsToWhite = [](std::vector<FEPointCloudVertex>& RawData) {
+		for (size_t i = 0; i < RawData.size(); i++)
+		{
+			if (RawData[i].R == 0 && RawData[i].G == 0 && RawData[i].B == 0)
+			{
+				RawData[i].R = 255;
+				RawData[i].G = 255;
+				RawData[i].B = 255;
+			}
+		}
+	};
+
+	RESOURCE_MANAGER.ImportLasOrLazPointCloudAsync(FilePath, CallBackWhenPointCloudIsLoaded, ConvertBlackPointsToWhite);
+}
+
+void SceneResources::SavePointCloudToFile(const std::string& FilePath)
+{
+	if (PointCloudEntity == nullptr)
+		return;
+
+	if (!PointCloudEntity->HasComponent<FEPointCloudComponent>())
+		return;
+
+	FEPointCloud* PointCloud = PointCloudEntity->GetComponent<FEPointCloudComponent>().GetPointCloud();
+	if (PointCloud == nullptr)
+		return;
+
+	RESOURCE_MANAGER.ExportFEPointCloudToLAZ(PointCloud, FilePath);
 }

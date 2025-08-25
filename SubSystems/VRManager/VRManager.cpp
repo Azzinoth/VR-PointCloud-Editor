@@ -39,7 +39,14 @@ void VRManager::Initialize()
 	FEOpenXR_INPUT.SetRightViveSqueezePressCallBack(&VRManager::OnRightAButtonPress);
 	FEOpenXR_INPUT.SetRightViveSqueezeReleaseCallBack(&VRManager::OnRightAButtonRelease);
 
+	FEOpenXR_INPUT.SetLeftViveMenuClickCallBack(&VRManager::OnLeftViveMenuClick);
+
 	InitializeSphereCursor();
+
+	// Making sure that ImGui is configured for VR interaction.
+	ImGui::GetIO().MouseDoubleClickTime = 1.10f;
+	ImGui::GetIO().MouseDoubleClickMaxDist = 50.0f;
+	ImGui::GetIO().MouseDragThreshold = 12.0f;
 }
 
 void VRManager::InitializeSphereCursor()
@@ -68,8 +75,8 @@ void VRManager::InitializeSphereCursor()
 	SphereCursorEntities[2] = MainScene->CreateEntity("Sphere Cursor Outer Entity");
 	SphereCursorEntities[2]->AddComponent<FEGameModelComponent>(SphereCursorGameModels[2]);
 
-	glm::vec3 SphereCursorPosition = glm::vec3(-0.010f, -0.020f, -0.150f);
-	float SphereCursorScale = 0.06f;
+	glm::vec3 SphereCursorPosition = glm::vec3(0.0f, 0.0f, -0.05f);
+	float SphereCursorScale = 0.02f;
 	for (size_t i = 0; i < SphereCursorEntities.size(); i++)
 	{
 		FETransformComponent& SphereCursorTransform = SphereCursorEntities[i]->GetComponent<FETransformComponent>();
@@ -79,6 +86,11 @@ void VRManager::InitializeSphereCursor()
 
 	for (size_t i = 0; i < SphereCursorEntities.size(); i++)
 		SphereCursorEntities[i]->SetComponentVisible(ComponentVisibilityType::GAME_MODEL, false);
+
+	glGenBuffers(1, &DeletionFlagBuffer);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, DeletionFlagBuffer);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(uint32_t), nullptr, GL_DYNAMIC_READ);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, DeletionFlagBuffer);
 }
 
 float VRManager::ControllerDistance()
@@ -234,14 +246,12 @@ void VRManager::OnLeftTriggerPress()
 	if (!VR_MANAGER.VR_MANAGER.bShowInterface)
 		SCENE_RESOURCES.TryToAttachEntities(VR_MANAGER.CurrentEntityToManipulate, OpenXR_MANAGER.GetLeftControllerEntity(), true);
 	
-	VR_MANAGER.bSphereCursorIsActive = true;
 	VR_MANAGER.bLeftControllerTriggerIsPressed = true;
 }
 
 void VRManager::OnLeftTriggerRelease()
 {
 	VR_MANAGER.bLeftControllerTriggerIsPressed = false;
-
 	VR_MANAGER.ReleaseEntity();
 }
 
@@ -258,25 +268,12 @@ void VRManager::OnRightAButtonPress()
 void VRManager::OnLeftAButtonRelease()
 {
 	VR_MANAGER.bLeftControllerScalingJustGotInActive = true;
+	VR_MANAGER.MenuClick();
+}
 
-	if (VR_MANAGER.bScalingWithControllersActive)
-		return;
-
-	// Or check if the left B button was pressed
-
-	uint64_t CurrentTimeStamp = TIME.GetTimeStamp();
-	uint64_t TimeSinceLeftBButtonRelease = CurrentTimeStamp - VR_MANAGER.RightAButtonReleaseTimeStamp;
-	if (TimeSinceLeftBButtonRelease > 100)
-	{
-		FEEntity* InteractionRayEntity = SCENE_RESOURCES.GetInteractionRayEntity();
-		FEGameModelComponent& InteractionRayModelComponent = InteractionRayEntity->GetComponent<FEGameModelComponent>();
-		FEVirtualUIComponent& VirtualUIComponent = VR_MANAGER.VRUIEntity->GetComponent<FEVirtualUIComponent>();
-
-		VR_MANAGER.bShowInterface = !VR_MANAGER.bShowInterface;
-		VR_MANAGER.VRUIEntity->SetComponentVisible(ComponentVisibilityType::VIRTUAL_UI, VR_MANAGER.bShowInterface);
-		VirtualUIComponent.SetInputActive(VR_MANAGER.bShowInterface);
-		InteractionRayEntity->SetComponentVisible(ComponentVisibilityType::GAME_MODEL, VR_MANAGER.bShowInterface);
-	}
+void VRManager::OnLeftViveMenuClick()
+{
+	VR_MANAGER.MenuClick();
 }
 
 void VRManager::OnRightAButtonRelease()
@@ -318,6 +315,15 @@ void VRManager::OnRightBButtonRelease()
 
 void VRManager::Update()
 {
+	static bool bFirstFrame = true;
+	if (bFirstFrame && OpenXR_MANAGER.GetVRRigEntity() != nullptr && VR_MANAGER.VRUIEntity != nullptr)
+	{
+		bFirstFrame = false;
+
+		bShowInterface = true;
+		ActivateMenuMode();
+	}
+	
 	static bool bAttached = false;
 	if (OpenXR_MANAGER.GetLeftControllerEntity() != nullptr && !bAttached)
 	{
@@ -333,6 +339,11 @@ void VRManager::Update()
 		if (CameraComponent.GetClearColor()[0] != 0.0f)
 			CameraComponent.SetClearColor(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
 	}
+
+	//// Because point cloud loading is taking place in different thread
+	//// we should check if it is done and then update entity to manipulate
+	//if (SCENE_RESOURCES.GetPointCloudEntity() != nullptr && SCENE_RESOURCES.GetPointCloudEntity() != GetCurrentEntityToManipulate())
+	//	SetCurrentEntityToManipulate(SCENE_RESOURCES.GetPointCloudEntity());
 
 	//bool bLeftControllerWasActiveCurrentFrame = false;
 	//bool bRightControllerWasActiveCurrentFrame = false;
@@ -367,14 +378,14 @@ void VRManager::Update()
 
 	//if (FEOpenXR_INPUT.IsRightControllerConnectedAndTracked() && OpenXR_MANAGER.GetRightControllerEntity() != nullptr)
 	//{
-	//	bRightControllerWasActiveCurrentFrame = true;
+	//	//bRightControllerWasActiveCurrentFrame = true;
 	//	static bool bFistTimeRightControllerActive = true;
 	//	if (bFistTimeRightControllerActive)
 	//	{
 	//		bFistTimeRightControllerActive = false;
 	//		for (size_t i = 0; i < SphereCursorEntities.size(); i++)
 	//		{
-	//			if (SphereCursorEntities[0] != nullptr)
+	//			if (SphereCursorEntities[i] != nullptr)
 	//			{
 	//				SCENE_RESOURCES.TryToAttachEntities(SphereCursorEntities[i], OpenXR_MANAGER.GetRightControllerEntity(), false);
 	//			}
@@ -465,7 +476,10 @@ void VRManager::Update()
 
 	if (bRightControllerTriggerIsPressed)
 	{
+		FEScene* MainScene = SCENE_RESOURCES.GetMainScene();
+		FEAABB SphereCursorAABB = MainScene->GetEntityAABB(SphereCursorEntities[0]);
 
+		SCENE_RESOURCES.DeletePoints(SphereCursorAABB.GetCenter(), SphereCursorAABB.GetLongestAxisLength() * SphereCursorActionScale);
 	}
 
 	AnimateSphereCursor();
@@ -507,20 +521,18 @@ void VRManager::InitializeVirtualUI()
 		if (OpenXR_MANAGER.GetLeftControllerEntity() == nullptr || OpenXR_MANAGER.GetRightControllerEntity() == nullptr)
 			return;
 
-		glm::vec2 FileDialogResolution = glm::vec2(600.0f, 400.0f);
-
 		VRUIEntity = SCENE_RESOURCES.GetMainScene()->CreateEntity("VR Interface");
 		FETransformComponent& VRUITransform = VRUIEntity->GetComponent<FETransformComponent>();
 		VRUITransform.SetPosition(glm::vec3(0.0f, 0.007f, -0.046f));
 		VRUITransform.SetRotation(glm::vec3(0.0f, 90.0f, 90.0f));
-		float AspectRatio = FileDialogResolution.x / FileDialogResolution.y;
+		float AspectRatio = InterfaceResolution.x / InterfaceResolution.y;
 		float BaseScale = 0.0375f;
 		glm::vec3 Scale = glm::vec3(BaseScale / AspectRatio, BaseScale, BaseScale);
 		VRUITransform.SetScale(Scale);
 
 		VRUIEntity->AddComponent<FEVirtualUIComponent>();
 		FEVirtualUIComponent& VirtualUIComponent = VRUIEntity->GetComponent<FEVirtualUIComponent>();
-		VirtualUIComponent.SetCanvasResolution(FileDialogResolution);
+		VirtualUIComponent.SetCanvasResolution(InterfaceResolution);
 		VirtualUIComponent.SetRenderFunction(VRInterfaceRender);
 		VirtualUIComponent.SetWindowToListen(APPLICATION.GetMainWindow());
 		VirtualUIComponent.SetMouseButtonPassThrough(true);
@@ -566,28 +578,113 @@ void VRManager::AttachInteractionRayToController()
 
 void VRManager::VRInterfaceRender(FEVirtualUI* CurrentVirtualUI)
 {
-	static bool bOpenFileDialog = false;
-	if (!bOpenFileDialog)
+	if (VR_MANAGER.bOpenFileDialogActive)
 	{
-		ifd::FileDialog::Instance().Open("PointCloudOpenDialog", "Open a point cloud", "Point cloud file (*.laz;*.las){.laz,.las},.*");
-		bOpenFileDialog = true;
-	}
-
-	ImGui::SetNextWindowPos(ImVec2(0, 0));
-	if (ifd::FileDialog::Instance().IsDone("PointCloudOpenDialog"))
-	{
-		if (ifd::FileDialog::Instance().HasResult())
+		if (VR_MANAGER.bNeedToOpenLoadFileDialog)
 		{
-			std::string Result = ifd::FileDialog::Instance().GetResult().u8string();
-			if (FILE_SYSTEM.DoesFileExist(Result))
+			ifd::FileDialog::Instance().Open("PointCloudOpenDialog", "Open a point cloud", "Point cloud file (*.laz;*.las){.laz,.las},.*");
+			VR_MANAGER.bNeedToOpenLoadFileDialog = false;
+		}
+
+		ImGui::SetNextWindowPos(ImVec2(0, 0));
+		if (ifd::FileDialog::Instance().IsDone("PointCloudOpenDialog"))
+		{
+			if (ifd::FileDialog::Instance().HasResult())
 			{
-				SCENE_RESOURCES.LoadPointCloudFromFile(Result);
-				VR_MANAGER.SetCurrentEntityToManipulate(SCENE_RESOURCES.GetPointCloudEntity());
+				std::string Result = ifd::FileDialog::Instance().GetResult().u8string();
+				if (FILE_SYSTEM.DoesFileExist(Result))
+				{
+					VR_MANAGER.bLoadingInProgress = true;
+					VR_MANAGER.bOpenFileDialogActive = false;
+					SCENE_RESOURCES.LoadPointCloudFromFile(Result);
+				}
+			}
+
+			ifd::FileDialog::Instance().Close();
+		}
+	}
+	else if (VR_MANAGER.bLoadingInProgress)
+	{
+		if (ImGui::Begin("Loading", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar))
+		{
+			ImGui::SetWindowFontScale(3.0f);
+			ImGui::SetWindowSize(ImVec2(VR_MANAGER.InterfaceResolution.x, VR_MANAGER.InterfaceResolution.y));
+			ImGui::SetWindowPos(ImVec2(0.0f, 0.0f));
+			
+			static int DotsCount = 0;
+			float AnimationProgress = (TIME.GetTimeStamp() % 2000) / 2000.0f;
+			float SineWave = (sin(AnimationProgress * 2 * glm::pi<float>()) + 1.0f) / 2.0f;
+			DotsCount = static_cast<int>(SineWave * 3.99f); // 0-3 range.
+
+			std::string LoadingText = "Loading";
+			for (int i = 0; i < DotsCount; i++)
+				LoadingText += ".";
+
+			ImGui::SetCursorPos(ImVec2((VR_MANAGER.InterfaceResolution.x - ImGui::CalcTextSize(LoadingText.c_str()).x) * 0.5f, (VR_MANAGER.InterfaceResolution.y - ImGui::GetFontSize()) * 0.5f));
+			ImGui::Text("%s", LoadingText.c_str());
+		}
+
+		ImGui::End();
+	}
+	else if (VR_MANAGER.bHaveActivePointCloud && !VR_MANAGER.bSaveFileDialogActive)
+	{
+		if (ImGui::Begin("bHaveActivePointCloud", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar))
+		{
+			ImGui::SetWindowFontScale(3.0f);
+			ImGui::SetWindowSize(ImVec2(VR_MANAGER.InterfaceResolution.x, VR_MANAGER.InterfaceResolution.y));
+			ImGui::SetWindowPos(ImVec2(0.0f, 0.0f));
+
+			ImVec2 ButtonSize = ImVec2(400.0f, 150.0f);
+			ImGui::SetCursorPos(ImVec2((VR_MANAGER.InterfaceResolution.x - ButtonSize.x) * 0.5f, (VR_MANAGER.InterfaceResolution.y - ButtonSize.y) * 0.5f));
+			if (ImGui::Button("Save..."))
+			{
+				VR_MANAGER.bSaveFileDialogActive = true;
+				VR_MANAGER.bNeedToOpenSaveFileDialog = true;
 			}
 		}
 
-		ifd::FileDialog::Instance().Close();
+		ImGui::End();
 	}
+	else if (VR_MANAGER.bSaveFileDialogActive)
+	{
+		if (VR_MANAGER.bNeedToOpenSaveFileDialog)
+		{
+			ifd::FileDialog::Instance().Open("PointCloudSaveDialog", "Save a point cloud", "Point cloud file (*.laz;*.las){.laz,.las},.*");
+			VR_MANAGER.bNeedToOpenSaveFileDialog = false;
+		}
+
+		ImGui::SetNextWindowPos(ImVec2(0, 0));
+		if (ifd::FileDialog::Instance().IsDone("PointCloudSaveDialog"))
+		{
+			if (ifd::FileDialog::Instance().HasResult())
+			{
+				std::string Result = ifd::FileDialog::Instance().GetResult().u8string();
+				SCENE_RESOURCES.SavePointCloudToFile(Result);
+			}
+
+			ifd::FileDialog::Instance().Close();
+		}
+	}
+	else
+	{
+		if (ImGui::Begin("Start Menu", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar))
+		{
+			ImGui::SetWindowFontScale(3.0f);
+			ImGui::SetWindowSize(ImVec2(VR_MANAGER.InterfaceResolution.x, VR_MANAGER.InterfaceResolution.y));
+			ImGui::SetWindowPos(ImVec2(0.0f, 0.0f));
+
+			ImVec2 ButtonSize = ImVec2(400.0f, 150.0f);
+			ImGui::SetCursorPos(ImVec2((VR_MANAGER.InterfaceResolution.x - ButtonSize.x) * 0.5f, (VR_MANAGER.InterfaceResolution.y - ButtonSize.y) * 0.5f));
+			if (ImGui::Button("Open...", ButtonSize))
+			{
+				VR_MANAGER.bOpenFileDialogActive = true;
+				VR_MANAGER.bNeedToOpenLoadFileDialog = true;
+			}
+		}
+
+		ImGui::End();
+	}
+	
 }
 
 std::pair<glm::vec3, glm::vec3> VRManager::GetControllerInteractionRay(bool bLeftController) const
@@ -673,10 +770,7 @@ void VRManager::OnControllerDisconnected(bool bLeftController)
 		for (size_t i = 0; i < SphereCursorEntities.size(); i++)
 		{
 			if (SphereCursorEntities[0] != nullptr)
-			{
-				FEGameModelComponent& SphereCursorModelComponent = SphereCursorEntities[i]->GetComponent<FEGameModelComponent>();
 				SphereCursorEntities[i]->SetComponentVisible(ComponentVisibilityType::GAME_MODEL, false);
-			}
 		}
 	}
 }
@@ -710,4 +804,75 @@ void VRManager::OnControllerReConnected(bool bLeftController)
 void VRManager::OnControllerConnected(bool bLeftController)
 {
 
+}
+
+void VRManager::MenuClick()
+{
+	if (VR_MANAGER.bScalingWithControllersActive)
+		return;
+
+	uint64_t CurrentTimeStamp = TIME.GetTimeStamp();
+	uint64_t TimeSinceLeftBButtonRelease = CurrentTimeStamp - VR_MANAGER.RightAButtonReleaseTimeStamp;
+	if (TimeSinceLeftBButtonRelease > 100)
+	{
+		VR_MANAGER.bShowInterface = !VR_MANAGER.bShowInterface;
+		VR_MANAGER.bShowInterface ? ActivateMenuMode() : DeactivateMenuMode();
+	}
+}
+
+void VRManager::ActivateMenuMode()
+{
+	FEEntity* InteractionRayEntity = SCENE_RESOURCES.GetInteractionRayEntity();
+	FEGameModelComponent& InteractionRayModelComponent = InteractionRayEntity->GetComponent<FEGameModelComponent>();
+	FEVirtualUIComponent& VirtualUIComponent = VR_MANAGER.VRUIEntity->GetComponent<FEVirtualUIComponent>();
+
+	VR_MANAGER.bShowInterface = true;
+	VR_MANAGER.VRUIEntity->SetComponentVisible(ComponentVisibilityType::VIRTUAL_UI, VR_MANAGER.bShowInterface);
+	VirtualUIComponent.SetInputActive(VR_MANAGER.bShowInterface);
+	InteractionRayEntity->SetComponentVisible(ComponentVisibilityType::GAME_MODEL, VR_MANAGER.bShowInterface);
+
+	for (size_t i = 0; i < SphereCursorEntities.size(); i++)
+		SphereCursorEntities[i]->SetComponentVisible(ComponentVisibilityType::GAME_MODEL, false);
+}
+
+void VRManager::DeactivateMenuMode()
+{
+	FEEntity* InteractionRayEntity = SCENE_RESOURCES.GetInteractionRayEntity();
+	FEGameModelComponent& InteractionRayModelComponent = InteractionRayEntity->GetComponent<FEGameModelComponent>();
+	FEVirtualUIComponent& VirtualUIComponent = VR_MANAGER.VRUIEntity->GetComponent<FEVirtualUIComponent>();
+
+	VR_MANAGER.bShowInterface = false;
+	VR_MANAGER.VRUIEntity->SetComponentVisible(ComponentVisibilityType::VIRTUAL_UI, VR_MANAGER.bShowInterface);
+	VirtualUIComponent.SetInputActive(VR_MANAGER.bShowInterface);
+	InteractionRayEntity->SetComponentVisible(ComponentVisibilityType::GAME_MODEL, VR_MANAGER.bShowInterface);
+
+	for (size_t i = 0; i < SphereCursorEntities.size(); i++)
+	{
+		if (SphereCursorEntities[i] != nullptr)
+		{
+			SphereCursorEntities[i]->SetComponentVisible(ComponentVisibilityType::GAME_MODEL, true);
+			SCENE_RESOURCES.TryToAttachEntities(SphereCursorEntities[i], OpenXR_MANAGER.GetRightControllerEntity(), false);
+		}
+	}
+}
+
+bool VRManager::IsLoadingInProgress() const
+{ 
+	return bLoadingInProgress;
+}
+
+void VRManager::SetLoadingInProgress(bool NewValue)
+{ 
+	bLoadingInProgress = NewValue;
+}
+
+void VRManager::SetHaveActivePointCloud(bool NewValue, FEEntity* PointCloudEntity)
+{
+	VR_MANAGER.bHaveActivePointCloud = NewValue;
+	SetCurrentEntityToManipulate(PointCloudEntity);
+}
+
+bool VRManager::HasActivePointCloud() const
+{
+	return VR_MANAGER.bHaveActivePointCloud;
 }

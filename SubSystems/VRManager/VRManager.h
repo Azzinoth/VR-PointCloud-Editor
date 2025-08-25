@@ -4,16 +4,9 @@ using namespace FocalEngine;
 
 class VRManager
 {
-public:
-	SINGLETON_PUBLIC_PART(VRManager)
-
-	void Initialize();
-
-	void Update();
-
-	void InitializeVirtualUI();
-private:
 	SINGLETON_PRIVATE_PART(VRManager)
+
+	friend class SceneResources;
 
 	float TranslateScale = 1.0f;
 
@@ -37,6 +30,8 @@ private:
 
 	bool bLeftAButtonTouched = false;
 	bool bRightAButtonTouched = false;
+
+	glm::vec2 InterfaceResolution = glm::vec2(600.0f, 400.0f);
 
 	float ControllerDistance();
 	void CheckShouldScaleWorldActivate();
@@ -67,6 +62,9 @@ private:
 	static void OnLeftBButtonRelease();
 	static void OnRightBButtonRelease();
 
+	static void OnLeftViveMenuClick();
+	void MenuClick();
+
 	bool bShowInterface = false;
 	bool bControllerSelectionMode = false;
 
@@ -76,6 +74,9 @@ private:
 	int EntitiesToManipulateIndex = 0;
 	FEEntity* CurrentEntityToManipulate = nullptr;
 	void ReleaseEntity();
+
+	void ActivateMenuMode();
+	void DeactivateMenuMode();
 
 	bool bLeftControllerWasActiveLastFrame = false;
 	bool bRightControllerWasActiveLastFrame = false;
@@ -108,7 +109,28 @@ private:
 	//uint64_t LastTimeControllerScalingWasActive = 0;
 	uint64_t RightAButtonReleaseTimeStamp = 0;
 	bool bRightAButtonIsPressed = false;
+
+	bool bNeedToOpenLoadFileDialog = false;
+	bool bOpenFileDialogActive = false;
+
+	bool bNeedToOpenSaveFileDialog = false;
+	bool bSaveFileDialogActive = false;
+
+	bool bLoadingInProgress = false;
+	bool bHaveActivePointCloud = false;
+
+	void SetLoadingInProgress(bool NewValue);
+	void SetHaveActivePointCloud(bool NewValue, FEEntity* PointCloudEntity);
+
+	GLuint DeletionFlagBuffer;
+	float SphereCursorActionScale = 1.0f / 2.55f;
 public:
+	SINGLETON_PUBLIC_PART(VRManager)
+
+	void Initialize();
+	void Update();
+	void InitializeVirtualUI();
+
 	FEEntity* VRUIEntity = nullptr;
 	FEVirtualUI* CurrentVirtualUI = nullptr;
 	bool bFontLoaded = false;
@@ -124,6 +146,9 @@ public:
 
 	FEEntity* GetCurrentEntityToManipulate() const;
 	void SetCurrentEntityToManipulate(FEEntity* NewEntity);
+
+	bool IsLoadingInProgress() const;
+	bool HasActivePointCloud() const;
 };
 
 #define VR_MANAGER VRManager::GetInstance()

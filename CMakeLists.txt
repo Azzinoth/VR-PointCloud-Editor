@@ -63,6 +63,10 @@ file(GLOB VRManager_SRC
 	"SubSystems/VRManager/VRManager.cpp"
 )
 
+file(GLOB DeletePointsComputeShader_SRC
+	"Resources/PointCloudShaders/PointCloud_DeletePoints_CS.glsl"
+)
+
 file(GLOB Main_SRC
 	"main.cpp"
 )
@@ -84,6 +88,7 @@ add_executable(VR-PointCloud-Editor WIN32
 	                                ${Main_SRC}
 									${SceneResources_SRC}
 									${VRManager_SRC}
+									${DeletePointsComputeShader_SRC}
 									# *************** THIRD_PARTY ***************
 									${ImFileDialog_SRC}
 )
@@ -95,6 +100,7 @@ target_link_libraries(VR-PointCloud-Editor
 )
 
 source_group("Source Files" FILES ${Main_SRC})
+source_group("Source Files/Shaders/PointCloudShaders" FILES ${DeletePointsComputeShader_SRC})
 source_group("Source Files/SubSystems/SceneResources" FILES ${SceneResources_SRC})
 source_group("Source Files/SubSystems/VRManager" FILES ${VRManager_SRC})
 # *************** THIRD_PARTY ***************

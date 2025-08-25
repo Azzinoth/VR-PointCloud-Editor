@@ -23,7 +23,9 @@ public:
 	bool TryToAttachEntities(FEEntity* WhatToAttach, FEEntity* WhereToAttach, bool bPreserveWorldTransform);
 
 	void LoadPointCloudFromFile(const std::string& FilePath);
-	//void FlagPoints(glm::vec3 Center, float Radius);
+	void DeletePoints(glm::vec3 Center, float Radius);
+
+	void SavePointCloudToFile(const std::string& FilePath);
 private:
 	SINGLETON_PRIVATE_PART(SceneResources)
 
@@ -36,12 +38,16 @@ private:
 	FEEntity* BlueCylinderEntity = nullptr;
 	FEEntity* WhiteCylinderEntity = nullptr;
 
+	FEShader* DeletePointsComputeShader = nullptr;
+
 	FEEntity* InteractionRayEntity = nullptr;
 
 	FEEntity* PointCloudEntity = nullptr;
 
 	void SetupScene();
 	void InitResourses();
+
+	static void CallBackWhenPointCloudIsLoaded(FEPointCloud* LoadedPointCloud);
 };
 
 #define SCENE_RESOURCES SceneResources::GetInstance()

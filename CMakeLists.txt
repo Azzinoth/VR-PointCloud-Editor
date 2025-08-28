@@ -67,6 +67,11 @@ file(GLOB DeletePointsComputeShader_SRC
 	"Resources/PointCloudShaders/PointCloud_DeletePoints_CS.glsl"
 )
 
+file(GLOB ImGuiVirtualKeyboard_SRC
+	"SubSystems/ImGuiVirtualKeyboard.h"
+	"SubSystems/ImGuiVirtualKeyboard.cpp"
+)
+
 file(GLOB Main_SRC
 	"main.cpp"
 )
@@ -86,6 +91,7 @@ endif()
 # add the executable
 add_executable(VR-PointCloud-Editor WIN32
 	                                ${Main_SRC}
+									${ImGuiVirtualKeyboard_SRC}
 									${SceneResources_SRC}
 									${VRManager_SRC}
 									${DeletePointsComputeShader_SRC}
@@ -100,6 +106,7 @@ target_link_libraries(VR-PointCloud-Editor
 )
 
 source_group("Source Files" FILES ${Main_SRC})
+source_group("Source Files/SubSystems/ImGuiVirtualKeyboard" FILES ${ImGuiVirtualKeyboard_SRC})
 source_group("Source Files/Shaders/PointCloudShaders" FILES ${DeletePointsComputeShader_SRC})
 source_group("Source Files/SubSystems/SceneResources" FILES ${SceneResources_SRC})
 source_group("Source Files/SubSystems/VRManager" FILES ${VRManager_SRC})

@@ -90,6 +90,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			ShowTransformConfiguration(SelectionRayEntity, &SelectionRayTransform);
 		}
 
+		FEEntity* VRInterfaceEntity = VR_MANAGER.GetVRInterfaceEntity();
+		if (VRInterfaceEntity != nullptr)
+		{
+			FETransformComponent& VRInterfaceTransform = VRInterfaceEntity->GetComponent<FETransformComponent>();
+			ShowTransformConfiguration(VRInterfaceEntity, &VRInterfaceTransform, 0.01f);
+		}
+
+		FEEntity* VRKeyboardEntity = VR_MANAGER.GetVirtualKeyboardEntity();
+		if (VRKeyboardEntity != nullptr)
+		{
+			FETransformComponent& VRKeyboardTransform = VRKeyboardEntity->GetComponent<FETransformComponent>();
+			ShowTransformConfiguration(VRKeyboardEntity, &VRKeyboardTransform, 0.01f);
+		}
+
 		ENGINE.EndFrame();
 
 		// CPU and GPU Time

@@ -307,5 +307,13 @@ void SceneResources::SavePointCloudToFile(const std::string& FilePath)
 	if (PointCloud == nullptr)
 		return;
 
-	RESOURCE_MANAGER.ExportFEPointCloudToLAZ(PointCloud, FilePath);
+	std::vector<FEPointCloudVertex> RawData = PointCloud->GetRawData();
+	std::vector<FEPointCloudVertex> NonDeletedPoints;
+	for (size_t i = 0; i < RawData.size(); i++)
+	{
+		if (!(RawData[i].A == 0))
+			NonDeletedPoints.push_back(RawData[i]);
+	}
+
+	RESOURCE_MANAGER.SaveRawDataToLASOrLAZ(NonDeletedPoints, FilePath);
 }

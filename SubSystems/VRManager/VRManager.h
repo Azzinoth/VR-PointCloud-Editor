@@ -1,5 +1,5 @@
 #pragma once
-#include "../SceneResources/SceneResources.h"
+#include "../ImGuiVirtualKeyboard.h"
 using namespace FocalEngine;
 
 class VRManager
@@ -66,6 +66,7 @@ class VRManager
 	void MenuClick();
 
 	bool bShowInterface = false;
+	FEEntity* VRUIEntity = nullptr;
 	bool bControllerSelectionMode = false;
 
 	float LineWidth = 0.1f;
@@ -124,6 +125,16 @@ class VRManager
 
 	GLuint DeletionFlagBuffer;
 	float SphereCursorActionScale = 1.0f / 2.55f;
+
+	static void OnControllerConnectionStatusChangeCallBack(bool bLeft, FE_VR_CONTROLLER_STATE_CHANGE Change);
+
+	ImGuiVirtualKeyboard VirtualKeyboard;
+	bool bVirtualKeyboardIsActive = false;
+	FEEntity* VRVirtualKeyboardEntity = nullptr;
+	FEVirtualUI* CurrentVirtuaKeyboardlUI = nullptr;
+	static void VRVirtualKeyboardRender(FEVirtualUI* CurrentVirtualUI);
+	std::string VirtualKeyboardOutput;
+	static void OnVirtualKeyboardTextChanged();
 public:
 	SINGLETON_PUBLIC_PART(VRManager)
 
@@ -131,13 +142,10 @@ public:
 	void Update();
 	void InitializeVirtualUI();
 
-	FEEntity* VRUIEntity = nullptr;
+	FEEntity* GetVRInterfaceEntity() const;
 	FEVirtualUI* CurrentVirtualUI = nullptr;
-	bool bFontLoaded = false;
-	bool bFontIsReady = false;
-	bool UIAdded = false;
-
 	static void VRInterfaceRender(FEVirtualUI* CurrentVirtualUI);
+	FEEntity* GetVirtualKeyboardEntity() const;
 
 	std::pair<glm::vec3, glm::vec3> GetControllerInteractionRay(bool bLeftController = true) const;
 

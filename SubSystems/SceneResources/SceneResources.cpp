@@ -143,7 +143,7 @@ void SceneResources::InitResourses()
 	WhiteCylinderGameModelComponent.SetReceivingShadows(false);
 	WhiteCylinderEntity->SetComponentVisible(ComponentVisibilityType::GAME_MODEL, false);
 	FETransformComponent& WhiteCylinderTransform = WhiteCylinderEntity->GetComponent<FETransformComponent>();
-	WhiteCylinderTransform.SetScale(glm::vec3(0.00075f, 0.1f, 0.00075f));
+	WhiteCylinderTransform.SetScale(glm::vec3(VR_MANAGER.SelectionRayWideness, 0.1f, VR_MANAGER.SelectionRayWideness));
 	WhiteCylinderTransform.SetRotation(glm::vec3(0.0f, 0.0f, 90.0f));
 
 	InteractionRayEntity = SCENE_RESOURCES.GetMainScene()->CreateEntity("Interaction Ray Cylinder");
@@ -152,8 +152,8 @@ void SceneResources::InitResourses()
 	MouseRayCylinderGameModelComponent.SetReceivingShadows(false);
 	InteractionRayEntity->SetComponentVisible(ComponentVisibilityType::GAME_MODEL, false);
 	FETransformComponent& InteractionRayTransform = InteractionRayEntity->GetComponent<FETransformComponent>();
-	InteractionRayTransform.SetPosition(glm::vec3(0.0f, 0.0f, -0.052f));
-	InteractionRayTransform.SetScale(glm::vec3(0.00045f, 0.03f, 0.00045f));
+	InteractionRayTransform.SetPosition(glm::vec3(0.0f, 0.0f, 0.0f));
+	InteractionRayTransform.SetScale(glm::vec3(VR_MANAGER.SelectionRayWideness, 0.03f, VR_MANAGER.SelectionRayWideness));
 	InteractionRayTransform.SetRotation(glm::vec3(90.0f, 0.0f, 0.0f));
 }
 
@@ -316,4 +316,15 @@ void SceneResources::SavePointCloudToFile(const std::string& FilePath)
 	}
 
 	RESOURCE_MANAGER.SaveRawDataToLASOrLAZ(NonDeletedPoints, FilePath);
+}
+
+void SceneResources::ClearPointCloud()
+{
+	if (PointCloudEntity == nullptr)
+		return;
+
+	VR_MANAGER.SetHaveActivePointCloud(false, nullptr);
+
+	MainScene->DeleteEntity(PointCloudEntity);
+	PointCloudEntity = nullptr;
 }

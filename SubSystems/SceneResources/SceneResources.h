@@ -23,9 +23,10 @@ public:
 	bool TryToAttachEntities(FEEntity* WhatToAttach, FEEntity* WhereToAttach, bool bPreserveWorldTransform);
 
 	void LoadPointCloudFromFile(const std::string& FilePath);
-	void DeletePoints(glm::vec3 Center, float Radius);
-
 	void SavePointCloudToFile(const std::string& FilePath);
+	void ClearPointCloud();
+
+	void DeletePoints(glm::vec3 Center, float Radius);
 private:
 	SINGLETON_PRIVATE_PART(SceneResources)
 

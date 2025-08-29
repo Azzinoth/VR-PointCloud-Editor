@@ -125,16 +125,22 @@ class VRManager
 
 	GLuint DeletionFlagBuffer;
 	float SphereCursorActionScale = 1.0f / 2.55f;
+	float SelectionRayWideness = 0.00065f;
 
 	static void OnControllerConnectionStatusChangeCallBack(bool bLeft, FE_VR_CONTROLLER_STATE_CHANGE Change);
+
+	static void OnFileDialogTextboxFocusChangedCallback(bool bIsFocused);
 
 	ImGuiVirtualKeyboard VirtualKeyboard;
 	bool bVirtualKeyboardIsActive = false;
 	FEEntity* VRVirtualKeyboardEntity = nullptr;
 	FEVirtualUI* CurrentVirtuaKeyboardlUI = nullptr;
 	static void VRVirtualKeyboardRender(FEVirtualUI* CurrentVirtualUI);
-	std::string VirtualKeyboardOutput;
-	static void OnVirtualKeyboardTextChanged();
+	static void OnVirtualKeyboardCharacterInput(char NewCharacter);
+	static void OnVirtualKeyboardSpecialKey(ImGuiVirtualKeyboard::VirtualKeyboardSpecialKey Key);
+
+	void ShowVirtualKeyboard();
+	void HideVirtualKeyboard();
 public:
 	SINGLETON_PUBLIC_PART(VRManager)
 
@@ -144,7 +150,7 @@ public:
 
 	FEEntity* GetVRInterfaceEntity() const;
 	FEVirtualUI* CurrentVirtualUI = nullptr;
-	static void VRInterfaceRender(FEVirtualUI* CurrentVirtualUI);
+	static void VRMainMenuRender(FEVirtualUI* CurrentVirtualUI);
 	FEEntity* GetVirtualKeyboardEntity() const;
 
 	std::pair<glm::vec3, glm::vec3> GetControllerInteractionRay(bool bLeftController = true) const;

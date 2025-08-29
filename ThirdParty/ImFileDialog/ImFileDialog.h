@@ -83,6 +83,16 @@ namespace ifd {
 			int IconPreviewWidth, IconPreviewHeight;
 		};
 
+		std::string GetFileNameTextboxContent() { return std::string(m_inputTextbox); }
+		void SetFileNameTextboxContent(const std::string& text) { strncpy_s(m_inputTextbox, text.c_str(), 1024); }
+
+		void AddOnFileNameTextboxFocusGainedCallback(std::function<void()> Func) { OnInputTextboxFocusGained.push_back(Func); }
+		void ClearOnFileNameTextboxFocusGainedCallbacks() { OnInputTextboxFocusGained.clear(); }
+		void AddOnFileNameTextboxFocusLostCallback(std::function<void()> Func) { OnInputTextboxFocusLost.push_back(Func); }
+		void ClearOnFileNameTextboxFocusLostCallbacks() { OnInputTextboxFocusLost.clear(); }
+		void AddOnFileNameTextboxFocusChangedCallback(std::function<void(bool)> Func) { OnInputTextboxFocusChanged.push_back(Func); }
+		void ClearOnFileNameTextboxFocusChangedCallbacks() { OnInputTextboxFocusChanged.clear(); }
+
 	private:
 		std::string m_currentKey;
 		std::string m_currentTitle;
@@ -91,6 +101,10 @@ namespace ifd {
 		bool m_isOpen;
 		uint8_t m_type;
 		char m_inputTextbox[1024];
+		bool m_inputTextboxHadFocus;
+		std::vector<std::function<void()>> OnInputTextboxFocusGained;
+		std::vector<std::function<void()>> OnInputTextboxFocusLost;
+		std::vector<std::function<void(bool)>> OnInputTextboxFocusChanged;
 		char m_pathBuffer[1024];
 		char m_newEntryBuffer[1024];
 		char m_searchBuffer[128];

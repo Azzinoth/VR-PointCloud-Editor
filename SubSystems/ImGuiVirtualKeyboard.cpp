@@ -12,16 +12,12 @@ char ImGuiVirtualKeyboard::ApplyLetterCase(char Charater, const VirtualKeyboardS
 
 void ImGuiVirtualKeyboard::DrawCharacterKey(char Character)
 {
-    if (OutputString == nullptr)
-		return;
-
     char ButtonLabel[8] = { 0 };
     ButtonLabel[0] = ApplyLetterCase(Character, CurrentVirtualKeyboardState);
     ButtonLabel[1] = '\0';
     if (ImGui::Button(ButtonLabel, ImVec2(KeyWidth, KeyHeight)))
     {
-        OutputString->push_back(ButtonLabel[0]);
-        OnTextChanged();
+        OnCharacterInput(ButtonLabel[0]);
         if (CurrentVirtualKeyboardState.bIsShiftActive && !CurrentVirtualKeyboardState.bIsCapsLockActive)
             CurrentVirtualKeyboardState.bIsShiftActive = false;
     }
@@ -45,13 +41,10 @@ void ImGuiVirtualKeyboard::DrawSymbolKey(const char* BaseSymbol, const char* Shi
 
     if (ImGui::Button(ButtonLabel, ImVec2(KeyWidth, KeyHeight)))
     {
-        if (OutputString != nullptr)
-        {
-            const char CharacterToAdd = (bIsShifted && ShiftedSymbol) ? ShiftedSymbol[0] : BaseSymbol[0];
-            OutputString->push_back(CharacterToAdd);
-            if (CurrentVirtualKeyboardState.bIsShiftActive && !CurrentVirtualKeyboardState.bIsCapsLockActive)
-                CurrentVirtualKeyboardState.bIsShiftActive = false;
-        }
+        const char CharacterToAdd = (bIsShifted && ShiftedSymbol) ? ShiftedSymbol[0] : BaseSymbol[0];
+		OnCharacterInput(CharacterToAdd);
+        if (CurrentVirtualKeyboardState.bIsShiftActive && !CurrentVirtualKeyboardState.bIsCapsLockActive)
+            CurrentVirtualKeyboardState.bIsShiftActive = false;
     }
 }
 
@@ -61,9 +54,8 @@ void ImGuiVirtualKeyboard::DrawSpecialKey(const char* Label, float KeyWidthScale
         OnKeyPress();
 }
 
-void ImGuiVirtualKeyboard::Initialize(std::string& Output, float KeyWidth, float KeyHeight, float KeyGap)
+void ImGuiVirtualKeyboard::Initialize(float KeyWidth, float KeyHeight, float KeyGap)
 {
-    OutputString = &Output;
 	this->KeyWidth = KeyWidth;
 	this->KeyHeight = KeyHeight;
 	this->KeyGap = KeyGap;
@@ -116,9 +108,8 @@ void ImGuiVirtualKeyboard::DrawVirtualKeyboard()
     ImGui::SameLine();
     DrawSymbolKey("=", "+");
     ImGui::SameLine();
-    DrawSpecialKey("Backspace", 2.5f, [&]() { 
-        if (OutputString != nullptr && !OutputString->empty()) OutputString->pop_back();
-		OnTextChanged();
+    DrawSpecialKey("Backspace", 2.5f, [&]() {
+        OnSpecialKey(VirtualKeyboardSpecialKey::BACKAPACE);
     });
 
     // Row 2: [Tab] q w e r t y u i o p [ ] \
@@ -126,8 +117,7 @@ void ImGuiVirtualKeyboard::DrawVirtualKeyboard()
     ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 5.0f);
     ImGui::SetCursorPosX(45.0f);
     DrawSpecialKey("Tab", 1.5f, [&]() {
-        if (OutputString != nullptr) OutputString->push_back('\t');
-        OnTextChanged();
+		OnSpecialKey(VirtualKeyboardSpecialKey::TAB);
     });
     ImGui::SameLine();
     for (const char* CurrentCharacter = "qwertyuiop"; *CurrentCharacter; CurrentCharacter++)
@@ -161,8 +151,7 @@ void ImGuiVirtualKeyboard::DrawVirtualKeyboard()
     DrawSymbolKey("'", "\"");
     ImGui::SameLine();
     DrawSpecialKey("Enter", 2.0f, [&]() {
-        if (OutputString != nullptr) OutputString->push_back('\n');
-        OnTextChanged();
+		OnSpecialKey(VirtualKeyboardSpecialKey::ENTER);
     });
     
     // Row 4: [Shift] z x c v b n m , . / [Shift]
@@ -206,8 +195,7 @@ void ImGuiVirtualKeyboard::DrawVirtualKeyboard()
         ImGui::SetCursorPosX(ImGui::GetCursorPosX() + LeftPaddingForSpaceKey);
 
     DrawSpecialKey("Space", 6.0f, [&]() {
-        if (OutputString != nullptr) OutputString->push_back(' ');
-        OnTextChanged();
+		OnCharacterInput(' ');
     });
     
     ImGui::EndChild();
@@ -216,16 +204,40 @@ void ImGuiVirtualKeyboard::DrawVirtualKeyboard()
     ImGui::End();
 }
 
-void ImGuiVirtualKeyboard::AddOnTextChangedCallback(std::function<void()> Callback)
-{
-    OnTextChangedCallbacks.push_back(Callback);
+void ImGuiVirtualKeyboard::AddOnCharacterInputCallback(std::function<void(char)> Callback)
+{ 
+    OnCharacterInputCallbacks.push_back(Callback);
 }
 
-void ImGuiVirtualKeyboard::OnTextChanged()
+void ImGuiVirtualKeyboard::ClearOnCharacterInputCallbacks()
+{ 
+    OnCharacterInputCallbacks.clear();
+}
+
+void ImGuiVirtualKeyboard::AddOnSpecialKeyCallback(std::function<void(VirtualKeyboardSpecialKey)> Callback)
+{ 
+    OnSpecialKeyCallbacks.push_back(Callback);
+}
+
+void ImGuiVirtualKeyboard::ClearOnSpecialKeyCallbacks()
+{ 
+    OnSpecialKeyCallbacks.clear();
+}
+
+void ImGuiVirtualKeyboard::OnCharacterInput(char Character)
 {
-    for (size_t i = 0; i < OnTextChangedCallbacks.size(); i++)
+    for (size_t i = 0; i < OnCharacterInputCallbacks.size(); i++)
     {
-        if (OnTextChangedCallbacks[i] != nullptr)
-			OnTextChangedCallbacks[i]();
+        if (OnCharacterInputCallbacks[i] != nullptr)
+            OnCharacterInputCallbacks[i](Character);
     }
+}
+
+void ImGuiVirtualKeyboard::OnSpecialKey(VirtualKeyboardSpecialKey Key)
+{
+    for (size_t i = 0; i < OnSpecialKeyCallbacks.size(); i++)
+    {
+        if (OnSpecialKeyCallbacks[i] != nullptr)
+            OnSpecialKeyCallbacks[i](Key);
+	}
 }

@@ -148,10 +148,43 @@ void VRManager::UpdateWhiteCylinder()
 		glm::quat Rotation = glm::rotation(DefaultCylinderDirection, Direction);
 		WhiteCylinderTransform.SetQuaternion(Rotation);
 	}
-	else
+	else if (bShowInterface)
 	{
-		//FETransformComponent& InteractionRayTransform = SCENE_RESOURCES.GetInteractionRayCylinderEntity()->GetComponent<FETransformComponent>();
-		//InteractionRayTransform.SetScale(glm::vec3(0.00075f, 1000.1f, 0.00075f)/*, FE_WORLD_SPACE*/);
+		FEGameModelComponent& InteractionRayGameModelComponent = SCENE_RESOURCES.GetInteractionRayEntity()->GetComponent<FEGameModelComponent>();
+		FEMaterial* InteractionRayMaterial = InteractionRayGameModelComponent.GetGameModel()->GetMaterial();
+		InteractionRayMaterial->SetBaseColor(glm::vec4(1.0f));
+
+		float RayLength = 100.0f;
+		FEVirtualUIComponent& VirtualUIComponent = VR_MANAGER.VRUIEntity->GetComponent<FEVirtualUIComponent>();
+		FEVirtualUIComponent& VirtualKeyboardUIComponent = VR_MANAGER.VRVirtualKeyboardEntity->GetComponent<FEVirtualUIComponent>();
+		double DistanceToInterface = 0.0;
+		if (VirtualUIComponent.IsLastProvidedRayIntersectingCanvas() && VR_MANAGER.VRUIEntity->IsComponentVisible(ComponentVisibilityType::VIRTUAL_UI))
+			DistanceToInterface = VirtualUIComponent.GetLastRayIntersectionDistance();
+
+		if (VirtualKeyboardUIComponent.IsLastProvidedRayIntersectingCanvas() && VR_MANAGER.VRVirtualKeyboardEntity->IsComponentVisible(ComponentVisibilityType::VIRTUAL_UI))
+			DistanceToInterface = VirtualKeyboardUIComponent.GetLastRayIntersectionDistance();
+
+		if ((VirtualUIComponent.IsLastProvidedRayIntersectingCanvas() && VR_MANAGER.VRUIEntity->IsComponentVisible(ComponentVisibilityType::VIRTUAL_UI)) ||
+			(VirtualKeyboardUIComponent.IsLastProvidedRayIntersectingCanvas() && VR_MANAGER.VRVirtualKeyboardEntity->IsComponentVisible(ComponentVisibilityType::VIRTUAL_UI)))
+		{
+			RayLength = static_cast<float>(DistanceToInterface);
+			InteractionRayMaterial->SetBaseColor(glm::vec4(0.0f, 0.95f, 0.0f, 1.0f));
+		}
+
+		FETransformComponent& InteractionRayTransform = SCENE_RESOURCES.GetInteractionRayEntity()->GetComponent<FETransformComponent>();
+		InteractionRayTransform.SetScale(glm::vec3(SelectionRayWideness, RayLength / 2.0f, SelectionRayWideness), FE_WORLD_SPACE);
+		InteractionRayTransform.SetPosition(glm::vec3(0.0f, 0.0f, -RayLength * 0.1f), FE_LOCAL_SPACE);
+	}
+	else if (!bShowInterface)
+	{
+		FEGameModelComponent& InteractionRayGameModelComponent = SCENE_RESOURCES.GetInteractionRayEntity()->GetComponent<FEGameModelComponent>();
+		FEMaterial* InteractionRayMaterial = InteractionRayGameModelComponent.GetGameModel()->GetMaterial();
+		InteractionRayMaterial->SetBaseColor(glm::vec4(1.0f));
+
+		float RayLength = 100.0f;
+		FETransformComponent& InteractionRayTransform = SCENE_RESOURCES.GetInteractionRayEntity()->GetComponent<FETransformComponent>();
+		InteractionRayTransform.SetScale(glm::vec3(SelectionRayWideness, RayLength / 2.0f, SelectionRayWideness), FE_WORLD_SPACE);
+		InteractionRayTransform.SetPosition(glm::vec3(0.0f, 0.0f, -RayLength * 0.1f), FE_LOCAL_SPACE);
 	}
 }
 
@@ -218,8 +251,17 @@ void VRManager::OnRightTriggerPress()
 {
 	if (VR_MANAGER.bShowInterface)
 	{
-		VR_MANAGER.CurrentVirtualUI->InvokeMouseButton(ImGuiMouseButton_Left, GLFW_PRESS);
+		FEVirtualUIComponent& VirtualKeyboardUIComponent = VR_MANAGER.VRVirtualKeyboardEntity->GetComponent<FEVirtualUIComponent>();
+		// If user is interacting with the keyboard we do not want to interact with the main UI,
+		// to not break focus on the input text field.
+		if (!VirtualKeyboardUIComponent.IsLastProvidedRayIntersectingCanvas())
+			VR_MANAGER.CurrentVirtualUI->InvokeMouseButton(ImGuiMouseButton_Left, GLFW_PRESS);
+
 		VR_MANAGER.CurrentVirtuaKeyboardlUI->InvokeMouseButton(ImGuiMouseButton_Left, GLFW_PRESS);
+		FEVirtualUIComponent& VirtualUIComponent = VR_MANAGER.VRUIEntity->GetComponent<FEVirtualUIComponent>();
+
+		if (!VirtualUIComponent.IsLastProvidedRayIntersectingCanvas() && !VirtualKeyboardUIComponent.IsLastProvidedRayIntersectingCanvas())
+			VR_MANAGER.HideVirtualKeyboard();
 	}
 	
 	VR_MANAGER.bSphereCursorIsActive = true;
@@ -406,7 +448,7 @@ void VRManager::InitializeVirtualUI()
 	VRUIEntity->AddComponent<FEVirtualUIComponent>();
 	FEVirtualUIComponent& VirtualUIComponent = VRUIEntity->GetComponent<FEVirtualUIComponent>();
 	VirtualUIComponent.SetCanvasResolution(InterfaceResolution);
-	VirtualUIComponent.SetRenderFunction(VRInterfaceRender);
+	VirtualUIComponent.SetRenderFunction(VRMainMenuRender);
 	VirtualUIComponent.SetWindowToListen(APPLICATION.GetMainWindow());
 	VirtualUIComponent.SetMouseButtonPassThrough(true);
 	VirtualUIComponent.SetMouseMovePassThrough(true);
@@ -419,8 +461,9 @@ void VRManager::InitializeVirtualUI()
 	VRUIEntity->SetComponentVisible(ComponentVisibilityType::VIRTUAL_UI, false);
 
 	// Virtual Keyboard Entity
-	VirtualKeyboard.Initialize(VirtualKeyboardOutput, 64.0f, 64.0f, 8.0f);
-	VirtualKeyboard.AddOnTextChangedCallback(&VRManager::OnVirtualKeyboardTextChanged);
+	VirtualKeyboard.Initialize(64.0f, 64.0f, 8.0f);
+	VirtualKeyboard.AddOnCharacterInputCallback(&VRManager::OnVirtualKeyboardCharacterInput);
+	VirtualKeyboard.AddOnSpecialKeyCallback(&VRManager::OnVirtualKeyboardSpecialKey);
 
 	glm::vec2 VirtualKeyboardResolution = glm::vec2(1140.0f, 408.0f);
 	VRVirtualKeyboardEntity = MainScene->CreateEntity("VR Virtual Keyboard");
@@ -443,7 +486,9 @@ void VRManager::InitializeVirtualUI()
 	VirtualKeyboardUIComponent.SetScrollPassThrough(true);
 	VirtualKeyboardUIComponent.SetInputActive(true);
 	CurrentVirtuaKeyboardlUI = VirtualKeyboardUIComponent.GetVirtualUI();
-	//VRVirtualKeyboardEntity->SetComponentVisible(ComponentVisibilityType::VIRTUAL_UI, false);
+	VRVirtualKeyboardEntity->SetComponentVisible(ComponentVisibilityType::VIRTUAL_UI, false);
+
+	ifd::FileDialog::Instance().AddOnFileNameTextboxFocusChangedCallback(&VRManager::OnFileDialogTextboxFocusChangedCallback);
 }
 
 void VRManager::AttachVirtualUIToController()
@@ -493,13 +538,13 @@ void VRManager::AttachInteractionRayToController()
 		return;
 
 	FETransformComponent& InteractionRayTransform = InteractionRayEntity->GetComponent<FETransformComponent>();
-	InteractionRayTransform.SetPosition(glm::vec3(0.0f, 0.0f, -0.052f));
-	InteractionRayTransform.SetScale(glm::vec3(0.00045f, 0.03f, 0.00045f));
+	InteractionRayTransform.SetPosition(glm::vec3(0.0f, 0.0f, 0.0f));
+	InteractionRayTransform.SetScale(glm::vec3(SelectionRayWideness, 0.03f, SelectionRayWideness));
 	InteractionRayTransform.SetRotation(glm::vec3(90.0f, 0.0f, 0.0f));
 	SCENE_RESOURCES.TryToAttachEntities(InteractionRayEntity, OpenXR_MANAGER.GetRightControllerEntity(), false);
 }
 
-void VRManager::VRInterfaceRender(FEVirtualUI* CurrentVirtualUI)
+void VRManager::VRMainMenuRender(FEVirtualUI* CurrentVirtualUI)
 {
 	// Making sure that ImGui is configured for VR interaction.
 	ImGui::GetIO().MouseDoubleClickTime = 0.9f; // default is 0.30f 
@@ -563,11 +608,28 @@ void VRManager::VRInterfaceRender(FEVirtualUI* CurrentVirtualUI)
 			ImGui::SetWindowPos(ImVec2(0.0f, 0.0f));
 
 			ImVec2 ButtonSize = ImVec2(400.0f, 150.0f);
-			ImGui::SetCursorPos(ImVec2((VR_MANAGER.InterfaceResolution.x - ButtonSize.x) * 0.5f, (VR_MANAGER.InterfaceResolution.y - ButtonSize.y) * 0.5f));
-			if (ImGui::Button("Save..."))
+			float CenterX = (VR_MANAGER.InterfaceResolution.x - ButtonSize.x) * 0.5f;
+			float CenterY = (VR_MANAGER.InterfaceResolution.y - ButtonSize.y) * 0.5f;
+
+			
+			ImGui::SetCursorPos(ImVec2(CenterX, CenterY - ButtonSize.y * 0.5f));
+			if (ImGui::Button("Save Along Original"))
+			{
+				//VR_MANAGER.bSaveFileDialogActive = true;
+				//VR_MANAGER.bNeedToOpenSaveFileDialog = true;
+			}
+
+			ImGui::SetCursorPos(ImVec2(CenterX, CenterY + ButtonSize.y * 0.5f));
+			if (ImGui::Button("Save As..."))
 			{
 				VR_MANAGER.bSaveFileDialogActive = true;
 				VR_MANAGER.bNeedToOpenSaveFileDialog = true;
+			}
+
+			ImGui::SetCursorPos(ImVec2(CenterX, CenterY + ButtonSize.y * 0.25f));
+			if (ImGui::Button("Close Current"))
+			{
+				SCENE_RESOURCES.ClearPointCloud();
 			}
 		}
 
@@ -843,8 +905,44 @@ FEEntity* VRManager::GetVirtualKeyboardEntity() const
 	return VRVirtualKeyboardEntity;
 }
 
-void VRManager::OnVirtualKeyboardTextChanged()
+void VRManager::OnVirtualKeyboardCharacterInput(char NewCharacter)
 {
-	int y = 0;
-	y++;
+	VR_MANAGER.CurrentVirtualUI->InvokeCharInput(NewCharacter);
+}
+
+void VRManager::OnVirtualKeyboardSpecialKey(ImGuiVirtualKeyboard::VirtualKeyboardSpecialKey Key)
+{
+	switch (Key)
+	{
+		case ImGuiVirtualKeyboard::VirtualKeyboardSpecialKey::BACKAPACE:
+		{
+			VR_MANAGER.CurrentVirtualUI->InvokeKeyInput(GLFW_KEY_BACKSPACE, 0, GLFW_PRESS, 0);
+			VR_MANAGER.CurrentVirtualUI->InvokeKeyInput(GLFW_KEY_BACKSPACE, 0, GLFW_RELEASE, 0);
+			break;
+		}
+		case ImGuiVirtualKeyboard::VirtualKeyboardSpecialKey::ENTER:
+		{
+			VR_MANAGER.CurrentVirtualUI->InvokeKeyInput(GLFW_KEY_ENTER, 0, GLFW_PRESS, 0);
+			VR_MANAGER.CurrentVirtualUI->InvokeKeyInput(GLFW_KEY_ENTER, 0, GLFW_RELEASE, 0);
+			break;
+		}
+	}
+}
+
+void VRManager::OnFileDialogTextboxFocusChangedCallback(bool bIsFocused)
+{
+	VR_MANAGER.VRVirtualKeyboardEntity->SetComponentVisible(ComponentVisibilityType::VIRTUAL_UI, bIsFocused);
+	VR_MANAGER.bVirtualKeyboardIsActive = bIsFocused;
+}
+
+void VRManager::ShowVirtualKeyboard()
+{
+	VR_MANAGER.VRVirtualKeyboardEntity->SetComponentVisible(ComponentVisibilityType::VIRTUAL_UI, false);
+	VR_MANAGER.bVirtualKeyboardIsActive = false;
+}
+
+void VRManager::HideVirtualKeyboard()
+{
+	VR_MANAGER.VRVirtualKeyboardEntity->SetComponentVisible(ComponentVisibilityType::VIRTUAL_UI, false);
+	VR_MANAGER.bVirtualKeyboardIsActive = false;
 }

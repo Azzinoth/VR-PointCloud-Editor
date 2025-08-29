@@ -1373,6 +1373,35 @@ namespace ifd {
 			(void)success;
 #endif
 		}
+
+		// Check for focus changes
+		bool currentlyFocused = ImGui::IsItemFocused();
+		if (currentlyFocused != m_inputTextboxHadFocus) {
+			m_inputTextboxHadFocus = currentlyFocused;
+
+			// Trigger callbacks
+			if (currentlyFocused) {
+				for (size_t i = 0; i < OnInputTextboxFocusGained.size(); i++)
+				{
+					if (OnInputTextboxFocusGained[i] != nullptr)
+						OnInputTextboxFocusGained[i]();
+				}
+			}
+			else {
+				for (size_t i = 0; i < OnInputTextboxFocusLost.size(); i++)
+				{
+					if (OnInputTextboxFocusLost[i] != nullptr)
+						OnInputTextboxFocusLost[i]();
+				}
+			}
+
+			for (size_t i = 0; i < OnInputTextboxFocusChanged.size(); i++)
+			{
+				if (OnInputTextboxFocusChanged[i] != nullptr)
+					OnInputTextboxFocusChanged[i](currentlyFocused);
+			}
+		}
+
 		if (m_type != IFD_DIALOG_DIRECTORY) {
 			ImGui::SameLine();
 			ImGui::SetNextItemWidth(-FLT_MIN);

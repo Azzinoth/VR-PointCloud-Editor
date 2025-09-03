@@ -414,7 +414,7 @@ void VRManager::RotateTowardCamera(FEEntity* Entity, FEEntity* CameraEntity)
 		return;
 
 	FETransformComponent& CameraTransform = CameraEntity->GetComponent<FETransformComponent>();
-	glm::vec3 CameraPosition = CameraTransform.GetPosition();
+	glm::vec3 CameraPosition = CameraTransform.GetPosition(FE_WORLD_SPACE);
 
 	FETransformComponent& EntityTransform = Entity->GetComponent<FETransformComponent>();
 	glm::vec3 EntityPosition = EntityTransform.GetPosition(FE_WORLD_SPACE);
@@ -432,12 +432,12 @@ void VRManager::PlaceInFrontOfCamera(FEEntity* Entity, FEEntity* CameraEntity)
 		return;
 
 	FETransformComponent& CameraTransform = CameraEntity->GetComponent<FETransformComponent>();
-	glm::vec3 CameraPosition = CameraTransform.GetPosition();
+	glm::vec3 CameraPosition = CameraTransform.GetPosition(FE_WORLD_SPACE);
 	glm::vec3 CameraForward = CameraEntity->GetComponent<FECameraComponent>().GetForward();
 
 	FETransformComponent& EntityTransform = Entity->GetComponent<FETransformComponent>();
-	glm::vec3 EntityPosition = EntityTransform.GetPosition();
-	EntityTransform.SetPosition(CameraPosition + CameraForward * 1.0f);
+	glm::vec3 EntityPosition = EntityTransform.GetPosition(FE_WORLD_SPACE);
+	EntityTransform.SetPosition(CameraPosition + CameraForward * 1.0f, FE_WORLD_SPACE);
 
 	RotateTowardCamera(Entity, CameraEntity);
 

@@ -77,8 +77,7 @@ class VRManager
 	void ReleaseEntity();
 
 	void ActivateMenuMode();
-	void DeactivateMenuMode();
-
+	
 	bool bLeftControllerWasActiveLastFrame = false;
 	bool bRightControllerWasActiveLastFrame = false;
 
@@ -163,6 +162,17 @@ public:
 
 	bool IsLoadingInProgress() const;
 	bool HasActivePointCloud() const;
+
+	bool IsMainMenuVisible() const;
+	void CloseMainMenu();
+
+	bool IsSphereCursorActive() const;
+	bool IsSphereCursorVisible() const;
+	void ShowSphereCursor();
+	void HideSphereCursor();
+
+	void RotateTowardCamera(FEEntity* Entity, FEEntity* CameraEntity);
+	void PlaceInFrontOfCamera(FEEntity* Entity, FEEntity* CameraEntity);
 };
 
 #define VR_MANAGER VRManager::GetInstance()

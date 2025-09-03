@@ -58,6 +58,26 @@ void ShowTransformConfiguration(FEObject* Object, FETransformComponent* Transfor
 	Transform->SetScale(Scale, FE_LOCAL_SPACE);
 }
 
+void MouseButtonCallback(int button, int action, int mods)
+{
+	FEEntity* MainCamera = SCENE_RESOURCES.GetMainCamera();
+
+	if (ImGui::GetIO().WantCaptureMouse)
+	{
+		MainCamera->GetComponent<FECameraComponent>().SetActive(false);
+		return;
+	}
+
+	if (button == GLFW_MOUSE_BUTTON_2 && action == GLFW_PRESS)
+	{
+		MainCamera->GetComponent<FECameraComponent>().SetActive(true);
+	}
+	else if (button == GLFW_MOUSE_BUTTON_2 && action == GLFW_RELEASE)
+	{
+		MainCamera->GetComponent<FECameraComponent>().SetActive(false);
+	}
+}
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	ENGINE.InitWindow(1270, 720, "Cloud Bathymetry");
@@ -72,8 +92,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	double AverageCpuFrameDuration = 0.0;
 	double AverageGpuFrameDuration = 0.0;
 
+	APPLICATION.GetMainWindow()->AddOnMouseButtonCallback(MouseButtonCallback);
 	SCENE_RESOURCES.Initialize();
-	bool bIsVRActive = ENGINE.EnableVR();
+
+	bool bIsVRActive = ENGINE.EnableVR(FERenderingPipeline::Forward_Simplified);
 	VR_MANAGER.Initialize();
 
 	while (ENGINE.IsNotTerminated())
@@ -102,6 +124,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		{
 			FETransformComponent& VRKeyboardTransform = VRKeyboardEntity->GetComponent<FETransformComponent>();
 			ShowTransformConfiguration(VRKeyboardEntity, &VRKeyboardTransform, 0.01f);
+		}
+
+		FEEntity* PointCloudEntity = SCENE_RESOURCES.GetPointCloudEntity();
+		if (PointCloudEntity != nullptr)
+		{
+			FETransformComponent& PointCloudTransform = PointCloudEntity->GetComponent<FETransformComponent>();
+			ShowTransformConfiguration(PointCloudEntity, &PointCloudTransform, 0.01f);
 		}
 
 		ENGINE.EndFrame();

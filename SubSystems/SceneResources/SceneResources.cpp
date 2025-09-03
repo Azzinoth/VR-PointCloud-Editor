@@ -157,25 +157,6 @@ void SceneResources::InitResourses()
 	InteractionRayTransform.SetRotation(glm::vec3(90.0f, 0.0f, 0.0f));
 }
 
-bool SceneResources::TryToAttachEntities(FEEntity* WhatToAttach, FEEntity* WhereToAttach, bool bPreserveWorldTransform)
-{
-	if (WhereToAttach == nullptr || WhatToAttach == nullptr)
-		return false;
-
-	if (WhereToAttach->GetParentScene() != WhatToAttach->GetParentScene())
-		return false;
-
-	FEScene* SceneToUse = WhereToAttach->GetParentScene();
-
-	FENaiveSceneGraphNode* WhereToAttachNode = SceneToUse->SceneGraph.GetNodeByEntityID(WhereToAttach->GetObjectID());
-	FENaiveSceneGraphNode* WhatToAttachNode = SceneToUse->SceneGraph.GetNodeByEntityID(WhatToAttach->GetObjectID());
-
-	if (WhereToAttachNode == nullptr || WhatToAttachNode == nullptr)
-		return false;
-
-	return SceneToUse->SceneGraph.MoveNode(WhatToAttachNode->GetObjectID(), WhereToAttachNode->GetObjectID(), bPreserveWorldTransform);
-}
-
 void SceneResources::DeletePoints(glm::vec3 Center, float Radius)
 {
 	if (PointCloudEntity == nullptr)
@@ -275,14 +256,35 @@ void SceneResources::CallBackWhenPointCloudIsLoaded(FEPointCloud* LoadedPointClo
 		VR_MANAGER.SetHaveActivePointCloud(false, nullptr);
 	}
 
+	VR_MANAGER.PlaceInFrontOfCamera(SCENE_RESOURCES.PointCloudEntity, OpenXR_MANAGER.GetVRHeadsetEntity());
+
 	VR_MANAGER.SetLoadingInProgress(false);
+	VR_MANAGER.CloseMainMenu();
 }
 
 void SceneResources::LoadPointCloudFromFile(const std::string& FilePath)
 {
-	auto ConvertBlackPointsToWhite = [](std::vector<FEPointCloudVertex>& RawData) {
+	auto ProcessRawData = [&](std::vector<FEPointCloudVertexDouble>& RawData) {
 		for (size_t i = 0; i < RawData.size(); i++)
 		{
+			if (RawData[i].X < OriginalMin.x)
+				OriginalMin.x = RawData[i].X;
+
+			if (RawData[i].X > OriginalMax.x)
+				OriginalMax.x = RawData[i].X;
+
+			if (RawData[i].Y < OriginalMin.y)
+				OriginalMin.y = RawData[i].Y;
+
+			if (RawData[i].Y > OriginalMax.y)
+				OriginalMax.y = RawData[i].Y;
+
+			if (RawData[i].Z < OriginalMin.z)
+				OriginalMin.z = RawData[i].Z;
+
+			if (RawData[i].Z > OriginalMax.z)
+				OriginalMax.z = RawData[i].Z;
+
 			if (RawData[i].R == 0 && RawData[i].G == 0 && RawData[i].B == 0)
 			{
 				RawData[i].R = 255;
@@ -290,9 +292,36 @@ void SceneResources::LoadPointCloudFromFile(const std::string& FilePath)
 				RawData[i].B = 255;
 			}
 		}
+
+		glm::dvec3 Extent = abs(OriginalMax - OriginalMin);
+		glm::dvec3 Center = OriginalMin + Extent / 2.0;
+
+		for (size_t i = 0; i < RawData.size(); i++)
+		{
+			RawData[i].X = RawData[i].X - Center.x;
+			RawData[i].Y = RawData[i].Y - Center.y;
+			RawData[i].Z = RawData[i].Z - Center.z;
+		}
+
+		ReCenteredMin = OriginalMin - Center;
+		ReCenteredMax = OriginalMax - Center;
+		MaxExtent = std::max({ Extent.x, Extent.y, Extent.z });
+
+		// Normalize to fit into a cube 1x1x1
+		for (size_t i = 0; i < RawData.size(); i++)
+		{
+			glm::dvec3 NewPosition = glm::dvec3(RawData[i].X, RawData[i].Y, RawData[i].Z);
+			NewPosition = (NewPosition - ReCenteredMin) / MaxExtent;
+
+			RawData[i].X = NewPosition.x;
+			RawData[i].Y = NewPosition.y;
+			RawData[i].Z = NewPosition.z;
+		}
+
+		PositionShift = Center;
 	};
 
-	RESOURCE_MANAGER.ImportLasOrLazPointCloudAsync(FilePath, CallBackWhenPointCloudIsLoaded, ConvertBlackPointsToWhite);
+	RESOURCE_MANAGER.ImportLasOrLazPointCloudAsync(FilePath, CallBackWhenPointCloudIsLoaded, false, ProcessRawData);
 }
 
 void SceneResources::SavePointCloudToFile(const std::string& FilePath)
@@ -312,10 +341,19 @@ void SceneResources::SavePointCloudToFile(const std::string& FilePath)
 	for (size_t i = 0; i < RawData.size(); i++)
 	{
 		if (!(RawData[i].A == 0))
+		{
+			glm::dvec3 ConvertedPosition = glm::dvec3(RawData[i].X, RawData[i].Y, RawData[i].Z);
+			ConvertedPosition = (ConvertedPosition) * MaxExtent + ReCenteredMin + PositionShift;
+
+			RawData[i].X = float(ConvertedPosition.x);
+			RawData[i].Y = float(ConvertedPosition.y);
+			RawData[i].Z = float(ConvertedPosition.z);
+
 			NonDeletedPoints.push_back(RawData[i]);
+		}
 	}
 
-	RESOURCE_MANAGER.SaveRawDataToLASOrLAZ(NonDeletedPoints, FilePath);
+	RESOURCE_MANAGER.SaveRawDataToLASOrLAZ(NonDeletedPoints, FilePath, true, 0.0001);
 }
 
 void SceneResources::ClearPointCloud()
@@ -327,4 +365,11 @@ void SceneResources::ClearPointCloud()
 
 	MainScene->DeleteEntity(PointCloudEntity);
 	PointCloudEntity = nullptr;
+
+	OriginalMin = glm::dvec3(DBL_MAX);
+	OriginalMax = glm::dvec3(-DBL_MAX);
+	ReCenteredMin = glm::dvec3(DBL_MAX);
+	ReCenteredMax = glm::dvec3(-DBL_MAX);
+	PositionShift = glm::dvec3(0.0);
+	MaxExtent = 0.0;
 }

@@ -288,7 +288,7 @@ void VRManager::OnRightTriggerRelease()
 void VRManager::OnLeftTriggerPress()
 {
 	if (!VR_MANAGER.VR_MANAGER.bShowInterface)
-		SCENE_RESOURCES.TryToAttachEntities(VR_MANAGER.CurrentEntityToManipulate, OpenXR_MANAGER.GetLeftControllerEntity(), true);
+		OpenXR_MANAGER.GetLeftControllerEntity()->AttachChild(VR_MANAGER.CurrentEntityToManipulate);
 	
 	VR_MANAGER.bLeftControllerTriggerIsPressed = true;
 }
@@ -402,7 +402,51 @@ void VRManager::Update()
 		SCENE_RESOURCES.DeletePoints(SphereCursorAABB.GetCenter(), SphereCursorAABB.GetLongestAxisLength() * SphereCursorActionScale);
 	}
 
+	if (!IsSphereCursorVisible() && bHaveActivePointCloud && !IsMainMenuVisible())
+		ShowSphereCursor();
+
 	AnimateSphereCursor();
+}
+
+void VRManager::RotateTowardCamera(FEEntity* Entity, FEEntity* CameraEntity)
+{
+	if (Entity == nullptr || CameraEntity == nullptr)
+		return;
+
+	FETransformComponent& CameraTransform = CameraEntity->GetComponent<FETransformComponent>();
+	glm::vec3 CameraPosition = CameraTransform.GetPosition();
+
+	FETransformComponent& EntityTransform = Entity->GetComponent<FETransformComponent>();
+	glm::vec3 EntityPosition = EntityTransform.GetPosition(FE_WORLD_SPACE);
+	glm::vec3 DirectionToCamera = glm::normalize(CameraPosition - EntityPosition);
+
+	FEAABB SelectedOriginalAABB = Entity->GetParentScene()->GetEntityAABB(Entity, true);
+	glm::vec3 OriginalAABBNormal = glm::normalize(SelectedOriginalAABB.GetAproximateForwardDirection());
+	glm::quat RotationQuaternion = glm::rotation(OriginalAABBNormal, DirectionToCamera);
+	EntityTransform.SetQuaternion(RotationQuaternion, FE_WORLD_SPACE);
+}
+
+void VRManager::PlaceInFrontOfCamera(FEEntity* Entity, FEEntity* CameraEntity)
+{
+	if (Entity == nullptr || CameraEntity == nullptr)
+		return;
+
+	FETransformComponent& CameraTransform = CameraEntity->GetComponent<FETransformComponent>();
+	glm::vec3 CameraPosition = CameraTransform.GetPosition();
+	glm::vec3 CameraForward = CameraEntity->GetComponent<FECameraComponent>().GetForward();
+
+	FETransformComponent& EntityTransform = Entity->GetComponent<FETransformComponent>();
+	glm::vec3 EntityPosition = EntityTransform.GetPosition();
+	EntityTransform.SetPosition(CameraPosition + CameraForward * 1.0f);
+
+	RotateTowardCamera(Entity, CameraEntity);
+
+	//FEAABB NewSelectedAABB = Entity->GetParentScene()->GetEntityAABB(Entity);
+	//float LongestAxis = NewSelectedAABB.GetLongestAxisLength();
+	//// Given near and far plane and fov of the camera, calculate how far the object should be to fit the screen
+	//float FOV = CameraEntity->GetComponent<FECameraComponent>().GetFOV();
+	//float DistanceToFit = (LongestAxis / 2.0f) / tan(glm::radians(FOV / 2.0f));
+	//EntityTransform.SetPosition(CameraPosition + CameraForward * DistanceToFit);
 }
 
 void VRManager::AnimateSphereCursor()
@@ -418,9 +462,7 @@ void VRManager::AnimateSphereCursor()
 		FETransformComponent& SphereCursorMiddleTransform = SphereCursorEntities[1]->GetComponent<FETransformComponent>();
 		SphereCursorMiddleTransform.RotateAroundAxis(glm::vec3(0.0f, .0f, 1.0f), RotationAmount, FE_COORDINATE_SPACE_TYPE::FE_LOCAL_SPACE);
 
-		FETransformComponent& SphereCursorOuterTransform = SphereCursorEntities[2]->GetComponent<FETransformComponent>();
-		SphereCursorOuterTransform.RotateAroundAxis(glm::vec3(1.0f, 0.0f, 0.0f), RotationAmount, FE_COORDINATE_SPACE_TYPE::FE_LOCAL_SPACE);
-		SphereCursorOuterTransform.RotateAroundAxis(glm::vec3(0.0f, 0.0f, 1.0f), RotationAmount, FE_COORDINATE_SPACE_TYPE::FE_LOCAL_SPACE);
+		RotateTowardCamera(SphereCursorEntities[2], OpenXR_MANAGER.GetVRHeadsetEntity());
 	}
 
 	glm::vec3 SphereCursorColor = glm::vec3(0.9f, 0.9f, 0.9f);
@@ -511,7 +553,7 @@ void VRManager::AttachVirtualUIToController()
 	glm::vec3 Scale = glm::vec3(BaseScale / AspectRatio, BaseScale, BaseScale);
 	VRUITransform.SetScale(Scale);
 
-	SCENE_RESOURCES.TryToAttachEntities(VRUIEntity, OpenXR_MANAGER.GetLeftControllerEntity(), false);
+	OpenXR_MANAGER.GetLeftControllerEntity()->AttachChild(VRUIEntity, false);
 
 	glm::vec2 VirtualKeyboardResolution = glm::vec2(1140.0f, 408.0f);
 	FETransformComponent& VRVirtualKeyboardTransform = VRVirtualKeyboardEntity->GetComponent<FETransformComponent>();
@@ -521,7 +563,7 @@ void VRManager::AttachVirtualUIToController()
 	Scale = glm::vec3(BaseScale / AspectRatio, BaseScale, BaseScale);
 	VRVirtualKeyboardTransform.SetScale(Scale);
 
-	SCENE_RESOURCES.TryToAttachEntities(VRVirtualKeyboardEntity, OpenXR_MANAGER.GetLeftControllerEntity(), false);
+	OpenXR_MANAGER.GetLeftControllerEntity()->AttachChild(VRVirtualKeyboardEntity, false);
 }
 
 void VRManager::AttachInteractionRayToController()
@@ -541,7 +583,7 @@ void VRManager::AttachInteractionRayToController()
 	InteractionRayTransform.SetPosition(glm::vec3(0.0f, 0.0f, 0.0f));
 	InteractionRayTransform.SetScale(glm::vec3(SelectionRayWideness, 0.03f, SelectionRayWideness));
 	InteractionRayTransform.SetRotation(glm::vec3(90.0f, 0.0f, 0.0f));
-	SCENE_RESOURCES.TryToAttachEntities(InteractionRayEntity, OpenXR_MANAGER.GetRightControllerEntity(), false);
+	OpenXR_MANAGER.GetRightControllerEntity()->AttachChild(InteractionRayEntity, false);
 }
 
 void VRManager::VRMainMenuRender(FEVirtualUI* CurrentVirtualUI)
@@ -571,6 +613,10 @@ void VRManager::VRMainMenuRender(FEVirtualUI* CurrentVirtualUI)
 					VR_MANAGER.bOpenFileDialogActive = false;
 					SCENE_RESOURCES.LoadPointCloudFromFile(Result);
 				}
+			}
+			else
+			{
+				VR_MANAGER.bOpenFileDialogActive = false;
 			}
 
 			ifd::FileDialog::Instance().Close();
@@ -650,6 +696,11 @@ void VRManager::VRMainMenuRender(FEVirtualUI* CurrentVirtualUI)
 			{
 				std::string Result = ifd::FileDialog::Instance().GetResult().u8string();
 				SCENE_RESOURCES.SavePointCloudToFile(Result);
+				VR_MANAGER.bSaveFileDialogActive = false;
+			}
+			else
+			{
+				VR_MANAGER.bSaveFileDialogActive = false;
 			}
 
 			ifd::FileDialog::Instance().Close();
@@ -813,7 +864,7 @@ void VRManager::MenuClick()
 	if (TimeSinceLeftBButtonRelease > 100)
 	{
 		VR_MANAGER.bShowInterface = !VR_MANAGER.bShowInterface;
-		VR_MANAGER.bShowInterface ? ActivateMenuMode() : DeactivateMenuMode();
+		VR_MANAGER.bShowInterface ? ActivateMenuMode() : CloseMainMenu();
 	}
 }
 
@@ -832,7 +883,12 @@ void VRManager::ActivateMenuMode()
 		SphereCursorEntities[i]->SetComponentVisible(ComponentVisibilityType::GAME_MODEL, false);
 }
 
-void VRManager::DeactivateMenuMode()
+bool VRManager::IsMainMenuVisible() const
+{ 
+	return bShowInterface;
+}
+
+void VRManager::CloseMainMenu()
 {
 	FEEntity* InteractionRayEntity = SCENE_RESOURCES.GetInteractionRayEntity();
 	FEGameModelComponent& InteractionRayModelComponent = InteractionRayEntity->GetComponent<FEGameModelComponent>();
@@ -842,15 +898,6 @@ void VRManager::DeactivateMenuMode()
 	VR_MANAGER.VRUIEntity->SetComponentVisible(ComponentVisibilityType::VIRTUAL_UI, VR_MANAGER.bShowInterface);
 	VirtualUIComponent.SetInputActive(VR_MANAGER.bShowInterface);
 	InteractionRayEntity->SetComponentVisible(ComponentVisibilityType::GAME_MODEL, VR_MANAGER.bShowInterface);
-
-	for (size_t i = 0; i < SphereCursorEntities.size(); i++)
-	{
-		if (SphereCursorEntities[i] != nullptr)
-		{
-			SphereCursorEntities[i]->SetComponentVisible(ComponentVisibilityType::GAME_MODEL, true);
-			SCENE_RESOURCES.TryToAttachEntities(SphereCursorEntities[i], OpenXR_MANAGER.GetRightControllerEntity(), false);
-		}
-	}
 }
 
 bool VRManager::IsLoadingInProgress() const
@@ -945,4 +992,46 @@ void VRManager::HideVirtualKeyboard()
 {
 	VR_MANAGER.VRVirtualKeyboardEntity->SetComponentVisible(ComponentVisibilityType::VIRTUAL_UI, false);
 	VR_MANAGER.bVirtualKeyboardIsActive = false;
+}
+
+bool VRManager::IsSphereCursorActive() const
+{
+	return bSphereCursorIsActive;
+}
+
+bool VRManager::IsSphereCursorVisible() const
+{
+	int VisibleCount = 0;
+	for (size_t i = 0; i < SphereCursorEntities.size(); i++)
+	{
+		if (SphereCursorEntities[i] != nullptr)
+		{
+			if (SphereCursorEntities[i]->IsComponentVisible(ComponentVisibilityType::GAME_MODEL))
+				VisibleCount++;
+		}
+	}
+
+	return VisibleCount == 3;
+}
+
+void VRManager::ShowSphereCursor()
+{
+	for (size_t i = 0; i < SphereCursorEntities.size(); i++)
+	{
+		if (SphereCursorEntities[i] != nullptr)
+		{
+			SphereCursorEntities[i]->SetComponentVisible(ComponentVisibilityType::GAME_MODEL, true);
+			OpenXR_MANAGER.GetRightControllerEntity()->AttachChild(SphereCursorEntities[i], false);
+		}
+	}
+}
+
+void VRManager::HideSphereCursor()
+{
+	for (size_t i = 0; i < SphereCursorEntities.size(); i++)
+	{
+		if (SphereCursorEntities[i] != nullptr)
+			SphereCursorEntities[i]->SetComponentVisible(ComponentVisibilityType::GAME_MODEL, false);
+		
+	}
 }

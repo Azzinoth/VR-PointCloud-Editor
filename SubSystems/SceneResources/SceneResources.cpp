@@ -321,7 +321,73 @@ void SceneResources::LoadPointCloudFromFile(const std::string& FilePath)
 		PositionShift = Center;
 	};
 
-	RESOURCE_MANAGER.ImportLasOrLazPointCloudAsync(FilePath, CallBackWhenPointCloudIsLoaded, false, ProcessRawData);
+	if (LoadedFileHeader != nullptr)
+	{
+		delete LoadedFileHeader;
+		LoadedFileHeader = nullptr;
+	}
+
+	LoadedFileHeader = new laszip_header();
+	ZeroMemory(LoadedFileHeader, sizeof(laszip_header));
+
+	RESOURCE_MANAGER.ImportLasOrLazPointCloudAsync(FilePath, CallBackWhenPointCloudIsLoaded, false, ProcessRawData, LoadedFileHeader);
+	LastLoadedPointCloudFilePath = FilePath;
+}
+
+struct SavePointCloudAsyncInfo
+{
+	std::string FilePath;
+	std::function<void(void*)> UserCallBack;
+	std::vector<FEPointCloudVertex>* RawData = nullptr;
+	double MaxExtent = 0.0;
+	glm::dvec3 ReCenteredMin = glm::dvec3(DBL_MAX);
+	glm::dvec3 PositionShift = glm::dvec3(0.0);
+
+	bool bSuccess = false;
+};
+
+void SavePointCloudFileAsync(void* InputData, void* OutputData)
+{
+	auto* Input = reinterpret_cast<SavePointCloudAsyncInfo*>(InputData);
+	auto* Output = reinterpret_cast<SavePointCloudAsyncInfo*>(OutputData);
+
+	std::vector<FEPointCloudVertex>& RawData = *Input->RawData;
+	std::vector<FEPointCloudVertex> NonDeletedPoints;
+	for (size_t i = 0; i < RawData.size(); i++)
+	{
+		if (!(RawData[i].A == 0))
+		{
+			glm::dvec3 ConvertedPosition = glm::dvec3(RawData[i].X, RawData[i].Y, RawData[i].Z);
+			ConvertedPosition = (ConvertedPosition) *Input->MaxExtent + Input->ReCenteredMin + Input->PositionShift;
+
+			RawData[i].X = float(ConvertedPosition.x);
+			RawData[i].Y = float(ConvertedPosition.y);
+			RawData[i].Z = float(ConvertedPosition.z);
+
+			NonDeletedPoints.push_back(RawData[i]);
+		}
+	}
+
+	double ScaleFactor = 0.0001;
+	laszip_header* LoadedFileHeader = SCENE_RESOURCES.GetLastLoadedFileHeader();
+	if (LoadedFileHeader != nullptr)
+		ScaleFactor = LoadedFileHeader->x_scale_factor; // FIX ME: should support different scale factors for x,y,z
+
+	RESOURCE_MANAGER.SaveRawDataToLASOrLAZ(NonDeletedPoints, Input->FilePath, true, ScaleFactor);
+}
+
+void SceneResources::SavePointCloudFileAsyncCallBack(void* OutputData)
+{
+	auto* ResultInfo = reinterpret_cast<SavePointCloudAsyncInfo*>(OutputData);
+
+	if (ResultInfo->bSuccess)
+	{
+	}
+
+	delete ResultInfo;
+	SCENE_RESOURCES.TempRawData.clear();
+
+	VR_MANAGER.bSavingInProgress = false;
 }
 
 void SceneResources::SavePointCloudToFile(const std::string& FilePath)
@@ -336,24 +402,17 @@ void SceneResources::SavePointCloudToFile(const std::string& FilePath)
 	if (PointCloud == nullptr)
 		return;
 
-	std::vector<FEPointCloudVertex> RawData = PointCloud->GetRawData();
-	std::vector<FEPointCloudVertex> NonDeletedPoints;
-	for (size_t i = 0; i < RawData.size(); i++)
-	{
-		if (!(RawData[i].A == 0))
-		{
-			glm::dvec3 ConvertedPosition = glm::dvec3(RawData[i].X, RawData[i].Y, RawData[i].Z);
-			ConvertedPosition = (ConvertedPosition) * MaxExtent + ReCenteredMin + PositionShift;
+	SavePointCloudAsyncInfo* InputData = new SavePointCloudAsyncInfo();
+	InputData->FilePath = FilePath;
+	InputData->UserCallBack = SavePointCloudFileAsyncCallBack;
+	TempRawData = PointCloud->GetRawData();
+	InputData->RawData = &TempRawData;
+	InputData->MaxExtent = MaxExtent;
+	InputData->ReCenteredMin = ReCenteredMin;
+	InputData->PositionShift = PositionShift;
 
-			RawData[i].X = float(ConvertedPosition.x);
-			RawData[i].Y = float(ConvertedPosition.y);
-			RawData[i].Z = float(ConvertedPosition.z);
-
-			NonDeletedPoints.push_back(RawData[i]);
-		}
-	}
-
-	RESOURCE_MANAGER.SaveRawDataToLASOrLAZ(NonDeletedPoints, FilePath, true, 0.0001);
+	SavePointCloudAsyncInfo* OutputData = new SavePointCloudAsyncInfo();
+	THREAD_POOL.Execute(SavePointCloudFileAsync, InputData, OutputData, &SavePointCloudFileAsyncCallBack);
 }
 
 void SceneResources::ClearPointCloud()
@@ -372,4 +431,7 @@ void SceneResources::ClearPointCloud()
 	ReCenteredMax = glm::dvec3(-DBL_MAX);
 	PositionShift = glm::dvec3(0.0);
 	MaxExtent = 0.0;
+
+	delete LoadedFileHeader;
+	LoadedFileHeader = nullptr;
 }

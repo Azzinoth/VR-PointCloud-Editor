@@ -241,3 +241,13 @@ void ImGuiVirtualKeyboard::OnSpecialKey(VirtualKeyboardSpecialKey Key)
             OnSpecialKeyCallbacks[i](Key);
 	}
 }
+
+bool ImGuiVirtualKeyboard::ShouldBeRendered() const
+{
+    return bShouldRender;
+}
+
+void ImGuiVirtualKeyboard::SetShouldBeRendered(bool bNewValue)
+{
+    bShouldRender = bNewValue;
+}

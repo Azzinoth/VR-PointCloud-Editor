@@ -27,6 +27,9 @@ public:
 	void DeletePoints(glm::vec3 Center, float Radius);
 
 	glm::dvec3 GetPositionShift() const { return PositionShift; }
+
+	laszip_header* GetLastLoadedFileHeader() const { return LoadedFileHeader; }
+	std::string GetLastLoadedPointCloudFilePath() const { return LastLoadedPointCloudFilePath; }
 private:
 	SINGLETON_PRIVATE_PART(SceneResources)
 
@@ -56,6 +59,12 @@ private:
 	glm::dvec3 ReCenteredMax = glm::dvec3(-DBL_MAX);
 	glm::dvec3 PositionShift = glm::dvec3(0.0);
 	double MaxExtent = 0.0;
+
+	std::vector<FEPointCloudVertex> TempRawData;
+	static void SavePointCloudFileAsyncCallBack(void* OutputData);
+
+	laszip_header* LoadedFileHeader = nullptr;
+	std::string LastLoadedPointCloudFilePath = "";
 };
 
 #define SCENE_RESOURCES SceneResources::GetInstance()

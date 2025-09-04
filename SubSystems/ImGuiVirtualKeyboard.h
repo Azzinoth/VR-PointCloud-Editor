@@ -52,4 +52,7 @@ public:
     void ClearOnCharacterInputCallbacks();
     void AddOnSpecialKeyCallback(std::function<void(VirtualKeyboardSpecialKey)> Callback);
     void ClearOnSpecialKeyCallbacks();
+
+    bool ShouldBeRendered() const;
+	void SetShouldBeRendered(bool bNewValue);
 };

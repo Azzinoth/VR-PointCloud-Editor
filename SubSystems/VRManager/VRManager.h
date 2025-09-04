@@ -115,6 +115,7 @@ class VRManager
 
 	bool bNeedToOpenSaveFileDialog = false;
 	bool bSaveFileDialogActive = false;
+	bool bSavingInProgress = false;
 
 	bool bLoadingInProgress = false;
 	bool bHaveActivePointCloud = false;
@@ -140,6 +141,8 @@ class VRManager
 
 	void ShowVirtualKeyboard();
 	void HideVirtualKeyboard();
+
+	void SetImGuiStyleForVR();
 public:
 	SINGLETON_PUBLIC_PART(VRManager)
 

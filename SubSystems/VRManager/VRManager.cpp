@@ -1,5 +1,68 @@
 #include "VRManager.h"
 
+void VRManager::SetImGuiStyleForVR()
+{
+	ImVec4* Colors = ImGui::GetStyle().Colors;
+	Colors[ImGuiCol_Text] = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
+	Colors[ImGuiCol_TextDisabled] = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);
+	Colors[ImGuiCol_WindowBg] = ImVec4(0.06f, 0.06f, 0.06f, 0.94f);
+	Colors[ImGuiCol_ChildBg] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+	Colors[ImGuiCol_PopupBg] = ImVec4(0.08f, 0.08f, 0.08f, 0.94f);
+	Colors[ImGuiCol_Border] = ImVec4(0.43f, 0.43f, 0.50f, 0.50f);
+	Colors[ImGuiCol_BorderShadow] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+	Colors[ImGuiCol_FrameBg] = ImVec4(0.19f, 0.19f, 0.19f, 0.54f);
+	Colors[ImGuiCol_FrameBgHovered] = ImVec4(0.60f, 0.26f, 0.98f, 0.40f);
+	Colors[ImGuiCol_FrameBgActive] = ImVec4(0.60f, 0.26f, 0.98f, 0.67f);
+	Colors[ImGuiCol_TitleBg] = ImVec4(0.04f, 0.04f, 0.04f, 1.00f);
+	Colors[ImGuiCol_TitleBgActive] = ImVec4(0.31f, 0.16f, 0.48f, 1.00f);
+	Colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.00f, 0.00f, 0.00f, 0.51f);
+	Colors[ImGuiCol_MenuBarBg] = ImVec4(0.14f, 0.14f, 0.14f, 1.00f);
+	Colors[ImGuiCol_ScrollbarBg] = ImVec4(0.02f, 0.02f, 0.02f, 0.53f);
+	Colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.31f, 0.31f, 0.31f, 1.00f);
+	Colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.41f, 0.41f, 0.41f, 1.00f);
+	Colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.51f, 0.51f, 0.51f, 1.00f);
+	Colors[ImGuiCol_CheckMark] = ImVec4(0.60f, 0.26f, 0.98f, 1.00f);
+	Colors[ImGuiCol_SliderGrab] = ImVec4(0.54f, 0.24f, 0.88f, 1.00f);
+	Colors[ImGuiCol_SliderGrabActive] = ImVec4(0.60f, 0.26f, 0.98f, 1.00f);
+	Colors[ImGuiCol_Button] = ImVec4(0.60f, 0.26f, 0.98f, 0.40f);
+	Colors[ImGuiCol_ButtonHovered] = ImVec4(0.60f, 0.26f, 0.98f, 1.00f);
+	Colors[ImGuiCol_ButtonActive] = ImVec4(0.49f, 0.06f, 0.98f, 1.00f);
+	Colors[ImGuiCol_Header] = ImVec4(0.60f, 0.26f, 0.98f, 0.31f);
+	Colors[ImGuiCol_HeaderHovered] = ImVec4(0.60f, 0.26f, 0.98f, 0.80f);
+	Colors[ImGuiCol_HeaderActive] = ImVec4(0.60f, 0.26f, 0.98f, 1.00f);
+	Colors[ImGuiCol_Separator] = ImVec4(0.43f, 0.43f, 0.50f, 0.50f);
+	Colors[ImGuiCol_SeparatorHovered] = ImVec4(0.41f, 0.10f, 0.75f, 0.78f);
+	Colors[ImGuiCol_SeparatorActive] = ImVec4(0.41f, 0.10f, 0.75f, 1.00f);
+	Colors[ImGuiCol_ResizeGrip] = ImVec4(0.60f, 0.26f, 0.98f, 0.20f);
+	Colors[ImGuiCol_ResizeGripHovered] = ImVec4(0.60f, 0.26f, 0.98f, 0.67f);
+	Colors[ImGuiCol_ResizeGripActive] = ImVec4(0.60f, 0.26f, 0.98f, 0.95f);
+	Colors[ImGuiCol_TabHovered] = ImVec4(0.60f, 0.26f, 0.98f, 0.80f);
+	Colors[ImGuiCol_Tab] = ImVec4(0.37f, 0.18f, 0.58f, 0.86f);
+	Colors[ImGuiCol_TabSelected] = ImVec4(0.42f, 0.20f, 0.68f, 1.00f);
+	Colors[ImGuiCol_TabSelectedOverline] = ImVec4(0.60f, 0.26f, 0.98f, 1.00f);
+	Colors[ImGuiCol_TabDimmed] = ImVec4(0.11f, 0.07f, 0.15f, 0.97f);
+	Colors[ImGuiCol_TabDimmedSelected] = ImVec4(0.27f, 0.14f, 0.42f, 1.00f);
+	Colors[ImGuiCol_TabDimmedSelectedOverline] = ImVec4(0.50f, 0.50f, 0.50f, 0.00f);
+	Colors[ImGuiCol_DockingPreview] = ImVec4(0.60f, 0.26f, 0.98f, 0.70f);
+	Colors[ImGuiCol_DockingEmptyBg] = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
+	Colors[ImGuiCol_PlotLines] = ImVec4(0.61f, 0.61f, 0.61f, 1.00f);
+	Colors[ImGuiCol_PlotLinesHovered] = ImVec4(1.00f, 0.43f, 0.35f, 1.00f);
+	Colors[ImGuiCol_PlotHistogram] = ImVec4(0.90f, 0.70f, 0.00f, 1.00f);
+	Colors[ImGuiCol_PlotHistogramHovered] = ImVec4(1.00f, 0.60f, 0.00f, 1.00f);
+	Colors[ImGuiCol_TableHeaderBg] = ImVec4(0.19f, 0.19f, 0.20f, 1.00f);
+	Colors[ImGuiCol_TableBorderStrong] = ImVec4(0.31f, 0.31f, 0.35f, 1.00f);
+	Colors[ImGuiCol_TableBorderLight] = ImVec4(0.23f, 0.23f, 0.25f, 1.00f);
+	Colors[ImGuiCol_TableRowBg] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+	Colors[ImGuiCol_TableRowBgAlt] = ImVec4(1.00f, 1.00f, 1.00f, 0.06f);
+	Colors[ImGuiCol_TextLink] = ImVec4(0.60f, 0.26f, 0.98f, 1.00f);
+	Colors[ImGuiCol_TextSelectedBg] = ImVec4(0.53f, 0.53f, 0.53f, 0.45f);
+	Colors[ImGuiCol_DragDropTarget] = ImVec4(1.00f, 1.00f, 0.00f, 0.90f);
+	Colors[ImGuiCol_NavCursor] = ImVec4(0.60f, 0.26f, 0.98f, 1.00f);
+	Colors[ImGuiCol_NavWindowingHighlight] = ImVec4(1.00f, 1.00f, 1.00f, 0.70f);
+	Colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.20f);
+	Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
+}
+
 VRManager::VRManager()
 {
 	EntitiesToManipulate.push_back(nullptr);
@@ -140,7 +203,7 @@ void VRManager::UpdateWhiteCylinder()
 		WhiteCylinderTransform.SetPosition(CurrentPivotPosition);
 		float OriginalLength = 2.0f;
 
-		WhiteCylinderTransform.SetScale(glm::vec3(0.00075f, ControllerDistance() / OriginalLength, 0.00075f) * VRRigScale);
+		WhiteCylinderTransform.SetScale(glm::vec3(SelectionRayWideness, ControllerDistance() / OriginalLength, SelectionRayWideness) * VRRigScale);
 
 		// Assumes cylinder is oriented along y-axis
 		glm::vec3 DefaultCylinderDirection = glm::vec3(0, 1, 0);
@@ -171,9 +234,34 @@ void VRManager::UpdateWhiteCylinder()
 			InteractionRayMaterial->SetBaseColor(glm::vec4(0.0f, 0.95f, 0.0f, 1.0f));
 		}
 
+		// FIX ME: Ugly temporary workaround for incorrect ray thickness and position 
+		// before the ray first intersects with a UI element.
+		//
+		// Root cause:
+		//   - SetPosition() only updates the transform if the new value differs
+		//     from the current one.
+		//   - On the very first frame, the local transform is different, but the
+		//     parent transform has not yet been updated, resulting in a wrong 
+		//     final position.
+		//   - On the next frame, the parent transform is updated correctly, but
+		//     since the local transform hasn’t changed, SetPosition() does not
+		//     trigger an update. This leaves the final position incorrect.
+		//
+		// Hack explanation:
+		//   - Slightle oscillation of RayLength (+/- 0.001f every frame depending 
+		//     on frame index parity) forces SetPosition() to register a 
+		//     change and reapply the transform, ensuring the correct final 
+		//     position is used once the parent transform is valid.
+		auto FrameIndex = ENGINE.GetCurrentFrameIndex();
+		if (FrameIndex % 2 == 0)
+			RayLength = RayLength + 0.001f;
+		else
+			RayLength = RayLength - 0.001f;
+
 		FETransformComponent& InteractionRayTransform = SCENE_RESOURCES.GetInteractionRayEntity()->GetComponent<FETransformComponent>();
 		InteractionRayTransform.SetScale(glm::vec3(SelectionRayWideness, RayLength / 2.0f, SelectionRayWideness), FE_WORLD_SPACE);
 		InteractionRayTransform.SetPosition(glm::vec3(0.0f, 0.0f, -RayLength * 0.1f), FE_LOCAL_SPACE);
+		InteractionRayTransform.SetDirtyFlag(true);
 	}
 	else if (!bShowInterface)
 	{
@@ -593,6 +681,8 @@ void VRManager::VRMainMenuRender(FEVirtualUI* CurrentVirtualUI)
 	ImGui::GetIO().MouseDoubleClickMaxDist = 15.0f; // default is 6.0f
 	ImGui::GetIO().MouseDragThreshold = 12.0f;
 
+	VR_MANAGER.SetImGuiStyleForVR();
+
 	if (VR_MANAGER.bOpenFileDialogActive)
 	{
 		if (VR_MANAGER.bNeedToOpenLoadFileDialog)
@@ -611,12 +701,14 @@ void VRManager::VRMainMenuRender(FEVirtualUI* CurrentVirtualUI)
 				{
 					VR_MANAGER.bLoadingInProgress = true;
 					VR_MANAGER.bOpenFileDialogActive = false;
+					VR_MANAGER.HideVirtualKeyboard();
 					SCENE_RESOURCES.LoadPointCloudFromFile(Result);
 				}
 			}
 			else
 			{
 				VR_MANAGER.bOpenFileDialogActive = false;
+				VR_MANAGER.HideVirtualKeyboard();
 			}
 
 			ifd::FileDialog::Instance().Close();
@@ -645,6 +737,29 @@ void VRManager::VRMainMenuRender(FEVirtualUI* CurrentVirtualUI)
 
 		ImGui::End();
 	}
+	else if (VR_MANAGER.bSavingInProgress)
+	{
+		if (ImGui::Begin("Saving", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar))
+		{
+			ImGui::SetWindowFontScale(3.0f);
+			ImGui::SetWindowSize(ImVec2(VR_MANAGER.InterfaceResolution.x, VR_MANAGER.InterfaceResolution.y));
+			ImGui::SetWindowPos(ImVec2(0.0f, 0.0f));
+
+			static int DotsCount = 0;
+			float AnimationProgress = (TIME.GetTimeStamp() % 2000) / 2000.0f;
+			float SineWave = (sin(AnimationProgress * 2 * glm::pi<float>()) + 1.0f) / 2.0f;
+			DotsCount = static_cast<int>(SineWave * 3.99f); // 0-3 range.
+
+			std::string SavingText = "Saving";
+			for (int i = 0; i < DotsCount; i++)
+				SavingText += ".";
+
+			ImGui::SetCursorPos(ImVec2((VR_MANAGER.InterfaceResolution.x - ImGui::CalcTextSize(SavingText.c_str()).x) * 0.5f, (VR_MANAGER.InterfaceResolution.y - ImGui::GetFontSize()) * 0.5f));
+			ImGui::Text("%s", SavingText.c_str());
+		}
+
+		ImGui::End();
+	}
 	else if (VR_MANAGER.bHaveActivePointCloud && !VR_MANAGER.bSaveFileDialogActive)
 	{
 		if (ImGui::Begin("bHaveActivePointCloud", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar))
@@ -653,27 +768,42 @@ void VRManager::VRMainMenuRender(FEVirtualUI* CurrentVirtualUI)
 			ImGui::SetWindowSize(ImVec2(VR_MANAGER.InterfaceResolution.x, VR_MANAGER.InterfaceResolution.y));
 			ImGui::SetWindowPos(ImVec2(0.0f, 0.0f));
 
-			ImVec2 ButtonSize = ImVec2(400.0f, 150.0f);
-			float CenterX = (VR_MANAGER.InterfaceResolution.x - ButtonSize.x) * 0.5f;
-			float CenterY = (VR_MANAGER.InterfaceResolution.y - ButtonSize.y) * 0.5f;
+			ImVec2 ButtonSize = ImVec2(400.0f, 70.0f);
+			float CenterX = VR_MANAGER.InterfaceResolution.x * 0.5f;
+			float QuarterY = VR_MANAGER.InterfaceResolution.y * 0.25f;
+			float HalfOfButtonWidth = ButtonSize.x * 0.5f;
+			float HalfOfButtonHeight = ButtonSize.y * 0.5f;
 
-			
-			ImGui::SetCursorPos(ImVec2(CenterX, CenterY - ButtonSize.y * 0.5f));
-			if (ImGui::Button("Save Along Original"))
+			ImGui::SetCursorPos(ImVec2(CenterX - HalfOfButtonWidth, QuarterY - HalfOfButtonHeight));
+			if (ImGui::Button("Save Along Original", ButtonSize))
 			{
-				//VR_MANAGER.bSaveFileDialogActive = true;
-				//VR_MANAGER.bNeedToOpenSaveFileDialog = true;
+				std::string FilePathToSave = "";
+				std::string FilePath = SCENE_RESOURCES.GetLastLoadedPointCloudFilePath();
+				if (FilePath == "")
+				{
+					FilePathToSave = "NewPointCloud.laz";
+				}
+				else
+				{
+					std::string FileName = FILE_SYSTEM.GetFileName(FilePath, false);
+					std::string DirectoryPath = FILE_SYSTEM.GetDirectoryPath(FilePath);
+
+					FilePathToSave = DirectoryPath + FileName + "_Edited.laz";
+				}
+				
+				SCENE_RESOURCES.SavePointCloudToFile(FilePathToSave);
+				VR_MANAGER.bSavingInProgress = true;
 			}
 
-			ImGui::SetCursorPos(ImVec2(CenterX, CenterY + ButtonSize.y * 0.5f));
-			if (ImGui::Button("Save As..."))
+			ImGui::SetCursorPos(ImVec2(CenterX - HalfOfButtonWidth, QuarterY * 2.0f - HalfOfButtonHeight));
+			if (ImGui::Button("Save As...", ButtonSize))
 			{
 				VR_MANAGER.bSaveFileDialogActive = true;
 				VR_MANAGER.bNeedToOpenSaveFileDialog = true;
 			}
 
-			ImGui::SetCursorPos(ImVec2(CenterX, CenterY + ButtonSize.y * 0.25f));
-			if (ImGui::Button("Close Current"))
+			ImGui::SetCursorPos(ImVec2(CenterX - HalfOfButtonWidth, QuarterY * 3.0f - HalfOfButtonHeight));
+			if (ImGui::Button("Close Current", ButtonSize))
 			{
 				SCENE_RESOURCES.ClearPointCloud();
 			}
@@ -697,10 +827,13 @@ void VRManager::VRMainMenuRender(FEVirtualUI* CurrentVirtualUI)
 				std::string Result = ifd::FileDialog::Instance().GetResult().u8string();
 				SCENE_RESOURCES.SavePointCloudToFile(Result);
 				VR_MANAGER.bSaveFileDialogActive = false;
+				VR_MANAGER.HideVirtualKeyboard();
+				VR_MANAGER.bSavingInProgress = true;
 			}
 			else
 			{
 				VR_MANAGER.bSaveFileDialogActive = false;
+				VR_MANAGER.HideVirtualKeyboard();
 			}
 
 			ifd::FileDialog::Instance().Close();
@@ -725,7 +858,6 @@ void VRManager::VRMainMenuRender(FEVirtualUI* CurrentVirtualUI)
 
 		ImGui::End();
 	}
-	
 }
 
 std::pair<glm::vec3, glm::vec3> VRManager::GetControllerInteractionRay(bool bLeftController) const
@@ -944,6 +1076,10 @@ void VRManager::OnControllerConnectionStatusChangeCallBack(bool bLeft, FE_VR_CON
 
 void VRManager::VRVirtualKeyboardRender(FEVirtualUI* CurrentVirtualUI)
 {
+	if (!VR_MANAGER.VirtualKeyboard.ShouldBeRendered())
+		VR_MANAGER.HideVirtualKeyboard();
+
+	VR_MANAGER.SetImGuiStyleForVR();
 	VR_MANAGER.VirtualKeyboard.DrawVirtualKeyboard();
 }
 
@@ -980,12 +1116,14 @@ void VRManager::OnFileDialogTextboxFocusChangedCallback(bool bIsFocused)
 {
 	VR_MANAGER.VRVirtualKeyboardEntity->SetComponentVisible(ComponentVisibilityType::VIRTUAL_UI, bIsFocused);
 	VR_MANAGER.bVirtualKeyboardIsActive = bIsFocused;
+	VR_MANAGER.VirtualKeyboard.SetShouldBeRendered(bIsFocused);
 }
 
 void VRManager::ShowVirtualKeyboard()
 {
-	VR_MANAGER.VRVirtualKeyboardEntity->SetComponentVisible(ComponentVisibilityType::VIRTUAL_UI, false);
-	VR_MANAGER.bVirtualKeyboardIsActive = false;
+	VR_MANAGER.VRVirtualKeyboardEntity->SetComponentVisible(ComponentVisibilityType::VIRTUAL_UI, true);
+	VR_MANAGER.bVirtualKeyboardIsActive = true;
+	VirtualKeyboard.SetShouldBeRendered(true);
 }
 
 void VRManager::HideVirtualKeyboard()

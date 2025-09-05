@@ -264,6 +264,11 @@ void SceneResources::CallBackWhenPointCloudIsLoaded(FEPointCloud* LoadedPointClo
 
 void SceneResources::LoadPointCloudFromFile(const std::string& FilePath)
 {
+	if (!FILE_SYSTEM.DoesFileExist(FilePath))
+		return;
+
+	VR_MANAGER.SetLoadingInProgress(true);
+
 	auto ProcessRawData = [&](std::vector<FEPointCloudVertexDouble>& RawData) {
 		for (size_t i = 0; i < RawData.size(); i++)
 		{
@@ -434,4 +439,13 @@ void SceneResources::ClearPointCloud()
 
 	delete LoadedFileHeader;
 	LoadedFileHeader = nullptr;
+}
+
+void SceneResources::ReloadCurrentPointCloud()
+{
+	if (SCENE_RESOURCES.GetLastLoadedPointCloudFilePath().empty())
+		return;
+
+	ClearPointCloud();
+	SCENE_RESOURCES.LoadPointCloudFromFile(SCENE_RESOURCES.GetLastLoadedPointCloudFilePath());
 }

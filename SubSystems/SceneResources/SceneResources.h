@@ -23,6 +23,7 @@ public:
 	void LoadPointCloudFromFile(const std::string& FilePath);
 	void SavePointCloudToFile(const std::string& FilePath);
 	void ClearPointCloud();
+	void ReloadCurrentPointCloud();
 
 	void DeletePoints(glm::vec3 Center, float Radius);
 

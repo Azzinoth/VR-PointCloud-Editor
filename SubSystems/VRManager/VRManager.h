@@ -65,6 +65,7 @@ class VRManager
 	static void OnLeftViveMenuClick();
 	void MenuClick();
 
+	bool bDemoMode = false;
 	bool bShowInterface = false;
 	FEEntity* VRUIEntity = nullptr;
 	bool bControllerSelectionMode = false;
@@ -95,8 +96,8 @@ class VRManager
 	FEMaterial* SphereCursorMaterial = nullptr;
 	std::vector<FEGameModel*> SphereCursorGameModels;
 	std::vector<FEEntity*> SphereCursorEntities;
-	glm::vec3 SphereCursorPosition = glm::vec3(-0.010f, -0.020f, -0.150f);
-	float SphereCursorScale = 0.06f;
+	glm::vec3 SphereCursorPosition = glm::vec3(0.0f, 0.0f, -0.035f);
+	float SphereCursorScale = 0.008f;
 	bool bSphereCursorIsActive = false;
 
 	void InitializeSphereCursor();
@@ -149,6 +150,9 @@ public:
 	void Initialize();
 	void Update();
 	void InitializeVirtualUI();
+
+	bool IsInDemoMode() const;
+	void SetDemoMode(bool bNewValue);
 
 	FEEntity* GetVRInterfaceEntity() const;
 	FEVirtualUI* CurrentVirtualUI = nullptr;

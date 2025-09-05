@@ -113,9 +113,10 @@ void VRManager::Initialize()
 void VRManager::InitializeSphereCursor()
 {
 	SphereCursorMeshes.resize(3);
-	SphereCursorMeshes[0] = RESOURCE_MANAGER.LoadFEMesh("Resources/SphereCursor/TorusInnerMesh.model", "TorusInnerMesh");
-	SphereCursorMeshes[1] = RESOURCE_MANAGER.LoadFEMesh("Resources/SphereCursor/TorusMiddleMesh.model", "TorusMiddleMesh");
-	SphereCursorMeshes[2] = RESOURCE_MANAGER.LoadFEMesh("Resources/SphereCursor/TorusOuterMesh.model", "TorusOuterMesh");
+	// In the beginning, different meshes were used for inner, middle and outer parts of the cursor.
+	SphereCursorMeshes[0] = RESOURCE_MANAGER.LoadFEMesh("Resources/SphereCursor/TorusMiddleMesh.model", "TorusMiddleMesh");
+	SphereCursorMeshes[1] = SphereCursorMeshes[0];
+	SphereCursorMeshes[2] = SphereCursorMeshes[1];
 
 	FEShader* SolidColorShader = RESOURCE_MANAGER.GetShader("6917497A5E0C05454876186F"/*"FESolidColorShader"*/);
 	SphereCursorMaterial = RESOURCE_MANAGER.CreateMaterial();
@@ -136,8 +137,6 @@ void VRManager::InitializeSphereCursor()
 	SphereCursorEntities[2] = MainScene->CreateEntity("Sphere Cursor Outer Entity");
 	SphereCursorEntities[2]->AddComponent<FEGameModelComponent>(SphereCursorGameModels[2]);
 
-	glm::vec3 SphereCursorPosition = glm::vec3(0.0f, 0.0f, -0.05f);
-	float SphereCursorScale = 0.02f;
 	for (size_t i = 0; i < SphereCursorEntities.size(); i++)
 	{
 		FETransformComponent& SphereCursorTransform = SphereCursorEntities[i]->GetComponent<FETransformComponent>();
@@ -447,6 +446,9 @@ void VRManager::OnRightBButtonRelease()
 
 void VRManager::Update()
 {
+	if (OpenXR_MANAGER.GetVRRigEntity() == nullptr)
+		return;
+
 	// Ensure that VR camera have a black background
 	FEEntity* VRCamera = OpenXR_MANAGER.GetVRHeadsetEntity();
 	if (VRCamera != nullptr)
@@ -506,7 +508,14 @@ void VRManager::RotateTowardCamera(FEEntity* Entity, FEEntity* CameraEntity)
 
 	FETransformComponent& EntityTransform = Entity->GetComponent<FETransformComponent>();
 	glm::vec3 EntityPosition = EntityTransform.GetPosition(FE_WORLD_SPACE);
+
+	if (glm::all(glm::epsilonEqual(CameraPosition, EntityPosition, glm::vec3(1e-6f))))
+		return;
+
 	glm::vec3 DirectionToCamera = glm::normalize(CameraPosition - EntityPosition);
+
+	if (glm::all(glm::isnan(DirectionToCamera)))
+		return;
 
 	FEAABB SelectedOriginalAABB = Entity->GetParentScene()->GetEntityAABB(Entity, true);
 	glm::vec3 OriginalAABBNormal = glm::normalize(SelectedOriginalAABB.GetAproximateForwardDirection());
@@ -545,10 +554,10 @@ void VRManager::AnimateSphereCursor()
 		double RotationAmount = 0.35 * TimeEscaped;
 
 		FETransformComponent& SphereCursorInnerTransform = SphereCursorEntities[0]->GetComponent<FETransformComponent>();
-		SphereCursorInnerTransform.RotateAroundAxis(glm::vec3(1.0f, 0.0f, 0.0f), RotationAmount, FE_COORDINATE_SPACE_TYPE::FE_LOCAL_SPACE);
+		SphereCursorInnerTransform.RotateAroundAxis(glm::vec3(1.0f, 0.0f, 0.0f), float(RotationAmount), FE_COORDINATE_SPACE_TYPE::FE_LOCAL_SPACE);
 
 		FETransformComponent& SphereCursorMiddleTransform = SphereCursorEntities[1]->GetComponent<FETransformComponent>();
-		SphereCursorMiddleTransform.RotateAroundAxis(glm::vec3(0.0f, .0f, 1.0f), RotationAmount, FE_COORDINATE_SPACE_TYPE::FE_LOCAL_SPACE);
+		SphereCursorMiddleTransform.RotateAroundAxis(glm::vec3(0.0f, .0f, 1.0f), float(RotationAmount), FE_COORDINATE_SPACE_TYPE::FE_LOCAL_SPACE);
 
 		RotateTowardCamera(SphereCursorEntities[2], OpenXR_MANAGER.GetVRHeadsetEntity());
 	}
@@ -619,6 +628,7 @@ void VRManager::InitializeVirtualUI()
 	VRVirtualKeyboardEntity->SetComponentVisible(ComponentVisibilityType::VIRTUAL_UI, false);
 
 	ifd::FileDialog::Instance().AddOnFileNameTextboxFocusChangedCallback(&VRManager::OnFileDialogTextboxFocusChangedCallback);
+	ifd::FileDialog::Instance().SetZoom(ifd::FileDialog::Instance().GetZoom() * 3.0f);
 }
 
 void VRManager::AttachVirtualUIToController()
@@ -768,13 +778,18 @@ void VRManager::VRMainMenuRender(FEVirtualUI* CurrentVirtualUI)
 			ImGui::SetWindowSize(ImVec2(VR_MANAGER.InterfaceResolution.x, VR_MANAGER.InterfaceResolution.y));
 			ImGui::SetWindowPos(ImVec2(0.0f, 0.0f));
 
+			int ButtonCount = 3;
 			ImVec2 ButtonSize = ImVec2(400.0f, 70.0f);
+			if (VR_MANAGER.IsInDemoMode())
+			{
+				ButtonCount = 4;
+			}
 			float CenterX = VR_MANAGER.InterfaceResolution.x * 0.5f;
-			float QuarterY = VR_MANAGER.InterfaceResolution.y * 0.25f;
+			float FirstButtonCenterY = VR_MANAGER.InterfaceResolution.y / float(ButtonCount + 1);
 			float HalfOfButtonWidth = ButtonSize.x * 0.5f;
 			float HalfOfButtonHeight = ButtonSize.y * 0.5f;
 
-			ImGui::SetCursorPos(ImVec2(CenterX - HalfOfButtonWidth, QuarterY - HalfOfButtonHeight));
+			ImGui::SetCursorPos(ImVec2(CenterX - HalfOfButtonWidth, FirstButtonCenterY - HalfOfButtonHeight));
 			if (ImGui::Button("Save Along Original", ButtonSize))
 			{
 				std::string FilePathToSave = "";
@@ -795,17 +810,26 @@ void VRManager::VRMainMenuRender(FEVirtualUI* CurrentVirtualUI)
 				VR_MANAGER.bSavingInProgress = true;
 			}
 
-			ImGui::SetCursorPos(ImVec2(CenterX - HalfOfButtonWidth, QuarterY * 2.0f - HalfOfButtonHeight));
+			ImGui::SetCursorPos(ImVec2(CenterX - HalfOfButtonWidth, FirstButtonCenterY * 2.0f - HalfOfButtonHeight));
 			if (ImGui::Button("Save As...", ButtonSize))
 			{
 				VR_MANAGER.bSaveFileDialogActive = true;
 				VR_MANAGER.bNeedToOpenSaveFileDialog = true;
 			}
 
-			ImGui::SetCursorPos(ImVec2(CenterX - HalfOfButtonWidth, QuarterY * 3.0f - HalfOfButtonHeight));
+			ImGui::SetCursorPos(ImVec2(CenterX - HalfOfButtonWidth, FirstButtonCenterY * 3.0f - HalfOfButtonHeight));
 			if (ImGui::Button("Close Current", ButtonSize))
 			{
 				SCENE_RESOURCES.ClearPointCloud();
+			}
+
+			if (VR_MANAGER.IsInDemoMode())
+			{
+				ImGui::SetCursorPos(ImVec2(CenterX - HalfOfButtonWidth, FirstButtonCenterY * 4.0f - HalfOfButtonHeight));
+				if (ImGui::Button("Reload", ButtonSize))
+				{
+					SCENE_RESOURCES.ReloadCurrentPointCloud();
+				}
 			}
 		}
 
@@ -1172,4 +1196,14 @@ void VRManager::HideSphereCursor()
 			SphereCursorEntities[i]->SetComponentVisible(ComponentVisibilityType::GAME_MODEL, false);
 		
 	}
+}
+
+bool VRManager::IsInDemoMode() const
+{
+	return bDemoMode;
+}
+
+void VRManager::SetDemoMode(bool bNewValue)
+{
+	bDemoMode = bNewValue;
 }

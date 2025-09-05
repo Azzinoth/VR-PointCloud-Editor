@@ -91,6 +91,7 @@ endif()
 # add the executable
 add_executable(VR-PointCloud-Editor WIN32
 	                                ${Main_SRC}
+									${EXTRACTED_NATIVE_SCRIPTS}
 									${ImGuiVirtualKeyboard_SRC}
 									${SceneResources_SRC}
 									${VRManager_SRC}
@@ -106,16 +107,16 @@ target_link_libraries(VR-PointCloud-Editor
 )
 
 source_group("Source Files" FILES ${Main_SRC})
+if(USE_STATIC_RUNTIME)
+	source_group("Source Files/FocalEngine/2B7956623302254F620A675F" FILES ${EXTRACTED_NATIVE_SCRIPTS})
+endif()
+
 source_group("Source Files/SubSystems/ImGuiVirtualKeyboard" FILES ${ImGuiVirtualKeyboard_SRC})
 source_group("Source Files/Shaders/PointCloudShaders" FILES ${DeletePointsComputeShader_SRC})
 source_group("Source Files/SubSystems/SceneResources" FILES ${SceneResources_SRC})
 source_group("Source Files/SubSystems/VRManager" FILES ${VRManager_SRC})
 # *************** THIRD_PARTY ***************
 source_group("Source Files/ThirdParty/ImFileDialog" FILES ${ImFileDialog_SRC})
-
-if(USE_STATIC_RUNTIME)
-	source_group("Source Files/FocalEngine/2B7956623302254F620A675F" FILES ${EXTRACTED_NATIVE_SCRIPTS})
-endif()
 
 # set the startup project
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT VR-PointCloud-Editor)

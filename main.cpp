@@ -80,7 +80,10 @@ void MouseButtonCallback(int button, int action, int mods)
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-	ENGINE.InitWindow(1270, 720, "Cloud Bathymetry");
+	std::vector<CommandLineAction> ParsedCommandActions;
+	ParsedCommandActions = APPLICATION.ParseCommandLine(lpCmdLine);
+
+	ENGINE.InitWindow(1270, 720, "VR-PointCloud-Editor");
 	ENGINE.SetVsyncEnabled(false);
 	THREAD_POOL.SetConcurrentThreadCount(10);
 
@@ -98,6 +101,32 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	bool bIsVRActive = ENGINE.EnableVR(FERenderingPipeline::Forward_Simplified);
 	VR_MANAGER.Initialize();
 
+	if (!ParsedCommandActions.empty())
+	{
+		for (size_t i = 0; i < ParsedCommandActions.size(); i++)
+		{
+			CommandLineAction& CurrentCommand = ParsedCommandActions[i];
+			std::transform(CurrentCommand.Action.begin(), CurrentCommand.Action.end(), CurrentCommand.Action.begin(), [](unsigned char Character) {
+				return std::tolower(Character);
+			});
+
+			if (CurrentCommand.Action == "demo_mode")
+			{
+				VR_MANAGER.SetDemoMode(true);
+			}
+
+			if (CurrentCommand.Action == "file_load")
+			{
+				auto SettingsIterator = CurrentCommand.Settings.find("filepath");
+				if (SettingsIterator != CurrentCommand.Settings.end())
+				{
+					std::string FilePath = SettingsIterator->second;
+					SCENE_RESOURCES.LoadPointCloudFromFile(FilePath);
+				}
+			}
+		}
+	}
+
 	while (ENGINE.IsNotTerminated())
 	{
 		ENGINE.BeginFrame();
@@ -105,7 +134,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 		VR_MANAGER.Update();
 
-		FEEntity* SelectionRayEntity = SCENE_RESOURCES.GetInteractionRayEntity();
+		/*FEEntity* SelectionRayEntity = SCENE_RESOURCES.GetInteractionRayEntity();
 		if (SelectionRayEntity != nullptr)
 		{
 			FETransformComponent& SelectionRayTransform = SelectionRayEntity->GetComponent<FETransformComponent>();
@@ -131,6 +160,93 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		{
 			FETransformComponent& PointCloudTransform = PointCloudEntity->GetComponent<FETransformComponent>();
 			ShowTransformConfiguration(PointCloudEntity, &PointCloudTransform, 0.01f);
+		}*/
+
+		static int MainWindowRenderingMode = 0;
+		if (ImGui::RadioButton("Mirror VR View", MainWindowRenderingMode == 0))
+		{
+			MainWindowRenderingMode = 0;
+			FEEntity* Camera = SCENE_RESOURCES.GetMainCamera();
+			FECameraComponent& CameraComponent = Camera->GetComponent<FECameraComponent>();
+			CameraComponent.SetRenderingEnabled(false);
+		}
+
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::BeginTooltip();
+			ImGui::TextUnformatted("Display what the VR headset sees in the main window");
+			ImGui::EndTooltip();
+		}
+		
+		if (ImGui::RadioButton("Free Camera View", MainWindowRenderingMode == 1))
+		{
+			MainWindowRenderingMode = 1;
+			FEEntity* Camera = SCENE_RESOURCES.GetMainCamera();
+			FECameraComponent& CameraComponent = Camera->GetComponent<FECameraComponent>();
+			CameraComponent.SetRenderingEnabled(true);
+		}
+		
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::BeginTooltip();
+			ImGui::TextUnformatted("Show independent camera view that can be manipulated\n"
+								   "to view scene from alternative perspective.\n"
+								   "This will cause lower performance.");
+			ImGui::EndTooltip();
+		}
+
+		if (ImGui::RadioButton("Disabled", MainWindowRenderingMode == 2))
+		{
+			MainWindowRenderingMode = 2;
+			FEEntity* Camera = SCENE_RESOURCES.GetMainCamera();
+			FECameraComponent& CameraComponent = Camera->GetComponent<FECameraComponent>();
+			CameraComponent.SetRenderingEnabled(false);
+		}
+
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::BeginTooltip();
+			ImGui::TextUnformatted("Disable main window rendering to save performance");
+			ImGui::EndTooltip();
+		}
+
+		if (VR_MANAGER.IsInDemoMode())
+		{
+			bool bReloadButtonEnabled = !SCENE_RESOURCES.GetLastLoadedPointCloudFilePath().empty();
+			if (!bReloadButtonEnabled)
+				ImGui::BeginDisabled();
+			if (ImGui::Button("Reload current point cloud"))
+				SCENE_RESOURCES.ReloadCurrentPointCloud();
+
+			if (!bReloadButtonEnabled)
+				ImGui::EndDisabled();
+		}
+
+		FEEntity* VRHeadsetEntity = OpenXR_MANAGER.GetVRHeadsetEntity();
+		if (VRHeadsetEntity != nullptr && MainWindowRenderingMode == 0)
+		{
+			FETexture* FinalSceneTexture = RENDERER.GetCameraResult(VRHeadsetEntity);
+			if (FinalSceneTexture != nullptr)
+			{
+				glViewport(0, 0, APPLICATION.GetMainWindow()->GetWidth(), APPLICATION.GetMainWindow()->GetHeight());
+				FE_GL_ERROR(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+
+				FEMesh* ScreenQuad = RESOURCE_MANAGER.GetMesh("1Y251E6E6T78013635793156"/*"plane"*/);
+				FEShader* ScreenQuadShader = RESOURCE_MANAGER.GetShader("7933272551311F3A1A5B2363");
+
+				FinalSceneTexture->Bind(0);
+				ScreenQuadShader->Start();
+				ScreenQuadShader->LoadUniformsDataToGPU();
+
+				FE_GL_ERROR(glBindVertexArray(ScreenQuad->GetVaoID()));
+				FE_GL_ERROR(glEnableVertexAttribArray(0));
+				FE_GL_ERROR(glDrawElements(GL_TRIANGLES, ScreenQuad->GetVertexCount(), GL_UNSIGNED_INT, nullptr));
+				FE_GL_ERROR(glDisableVertexAttribArray(0));
+				FE_GL_ERROR(glBindVertexArray(0));
+
+				FinalSceneTexture->UnBind();
+				ScreenQuadShader->Stop();
+			}
 		}
 
 		ENGINE.EndFrame();

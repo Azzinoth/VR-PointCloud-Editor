@@ -504,7 +504,7 @@ namespace ifd {
 				m_calledOpenPopup = true;
 			}
 
-			if (ImGui::BeginPopupModal(m_currentTitle.c_str(), &m_isOpen, ImGuiWindowFlags_NoScrollbar)) {
+			if (ImGui::BeginPopupModal(m_currentTitle.c_str(), &m_isOpen, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize)) {
 				m_renderFileDialog();
 				ImGui::EndPopup();
 			}

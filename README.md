@@ -50,7 +50,33 @@ Performance testing was conducted on three real-world datasets using the followi
 ## Current Status
 
 **⚠️ This project is currently in proof-of-concept stage.** Core editing functionality and rendering systems are already working; however, advanced features such as automated outlier detection and annotation tools from the Unity version are not yet implemented.
- 
+
+## How To Get
+- **Download ready-to-use application:**
+- **Download source code and compile:** Look for instructions below.
+
+## How to compile
+The compilation process was tested with Windows 10 (and 11) and Visual Studio 2022. To compile, you would need Git, CMake, and Visual Studio.
+```bash
+# Initialize a new Git repository
+git init
+
+# Add the remote repository
+git remote add origin https://github.com/Azzinoth/VR-PointCloud-Editor
+
+# Pull the contents of the remote repository
+git pull origin master
+
+# Initialize and update submodules
+git submodule update --init --recursive
+
+# Generate the build files using CMake
+# CMake should be added to a PATH
+# if not then use CMAKE GUI
+cmake CMakeLists.txt
+```
+After running these commands, you should have a Visual Studio project that is ready to be compiled.
+
 ## Acknowledgements
 
 This research was made possible through the support of NOAA Grant NA20NOS4000196.

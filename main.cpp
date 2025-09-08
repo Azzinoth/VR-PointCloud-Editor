@@ -78,6 +78,15 @@ void MouseButtonCallback(int button, int action, int mods)
 	}
 }
 
+void KeyButtonCallback(const int Key, const int Scancode, const int Action, const int Mods)
+{
+	if (Key == GLFW_KEY_ESCAPE && Action == GLFW_RELEASE)
+		ENGINE.Terminate();
+	
+	if (Key == GLFW_KEY_R && Action == GLFW_PRESS && VR_MANAGER.IsInDemoMode())
+		SCENE_RESOURCES.ReloadCurrentPointCloud();
+}
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	std::vector<CommandLineAction> ParsedCommandActions;
@@ -96,6 +105,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	double AverageGpuFrameDuration = 0.0;
 
 	APPLICATION.GetMainWindow()->AddOnMouseButtonCallback(MouseButtonCallback);
+	APPLICATION.GetMainWindow()->AddOnKeyCallback(KeyButtonCallback);
 	SCENE_RESOURCES.Initialize();
 
 	bool bIsVRActive = ENGINE.EnableVR(FERenderingPipeline::Forward_Simplified);

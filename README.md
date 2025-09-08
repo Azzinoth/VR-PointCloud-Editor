@@ -52,7 +52,7 @@ Performance testing was conducted on three real-world datasets using the followi
 **⚠️ This project is currently in proof-of-concept stage.** Core editing functionality and rendering systems are already working; however, advanced features such as automated outlier detection and annotation tools from the Unity version are not yet implemented.
 
 ## How To Get
-- **Download ready-to-use application:**
+- **Download ready-to-use application:** [Latest release](https://github.com/Azzinoth/VR-PointCloud-Editor/releases/tag/v0.1.0)
 - **Download source code and compile:** Look for instructions below.
 
 ## How to compile

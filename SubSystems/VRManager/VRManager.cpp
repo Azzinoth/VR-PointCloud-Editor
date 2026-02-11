@@ -966,7 +966,7 @@ void VRManager::OnControllerDisconnected(bool bLeftController)
 
 		for (size_t i = 0; i < SphereCursorEntities.size(); i++)
 		{
-			if (SphereCursorEntities[0] != nullptr)
+			if (SphereCursorEntities[i] != nullptr)
 				SphereCursorEntities[i]->SetComponentVisible(ComponentVisibilityType::GAME_MODEL, false);
 		}
 	}
@@ -992,6 +992,7 @@ void VRManager::OnControllerReConnected(bool bLeftController)
 			SCENE_RESOURCES.GetInteractionRayEntity()->SetComponentVisible(ComponentVisibilityType::GAME_MODEL, true);
 		
 		AttachInteractionRayToController();
+		AttachSphereCursorToController();
 	}
 }
 
@@ -1002,6 +1003,9 @@ void VRManager::OnControllerConnected(bool bLeftController)
 
 	if (!bLeftController)
 		AttachInteractionRayToController();
+
+	if (!bLeftController)
+		AttachSphereCursorToController();
 
 	if (FEOpenXR_INPUT.IsLeftControllerConnectedAndTracked() && FEOpenXR_INPUT.IsRightControllerConnectedAndTracked())
 	{
@@ -1181,10 +1185,7 @@ void VRManager::ShowSphereCursor()
 	for (size_t i = 0; i < SphereCursorEntities.size(); i++)
 	{
 		if (SphereCursorEntities[i] != nullptr)
-		{
 			SphereCursorEntities[i]->SetComponentVisible(ComponentVisibilityType::GAME_MODEL, true);
-			OpenXR_MANAGER.GetRightControllerEntity()->AttachChild(SphereCursorEntities[i], false);
-		}
 	}
 }
 
@@ -1194,7 +1195,15 @@ void VRManager::HideSphereCursor()
 	{
 		if (SphereCursorEntities[i] != nullptr)
 			SphereCursorEntities[i]->SetComponentVisible(ComponentVisibilityType::GAME_MODEL, false);
-		
+	}
+}
+
+void VRManager::AttachSphereCursorToController()
+{
+	for (size_t i = 0; i < SphereCursorEntities.size(); i++)
+	{
+		if (SphereCursorEntities[i] != nullptr)
+			OpenXR_MANAGER.GetRightControllerEntity()->AttachChild(SphereCursorEntities[i], false);
 	}
 }
 

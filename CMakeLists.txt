@@ -135,3 +135,8 @@ if(LASZIP_FINAL_DLL)
         "$<TARGET_FILE_DIR:VR-PointCloud-Editor>"
 	)
 endif()
+
+add_custom_command(TARGET VR-PointCloud-Editor PRE_BUILD
+	COMMAND ${CMAKE_COMMAND} -D SOURCE_FOLDER=${CMAKE_CURRENT_SOURCE_DIR}
+		-P ${CMAKE_CURRENT_SOURCE_DIR}/EditorVersion.cmake
+)

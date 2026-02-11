@@ -102,6 +102,7 @@ class VRManager
 
 	void InitializeSphereCursor();
 	void AnimateSphereCursor();
+	void AttachSphereCursorToController();
 
 	void OnControllerConnected(bool bLeftController = true);
 	void OnControllerDisconnected(bool bLeftController = true);

@@ -1,6 +1,103 @@
 #include "SubSystems/VRManager/VRManager.h"
 using namespace FocalEngine;
 
+#include "EditorVersion.h"
+std::string GetVREditorVersion()
+{
+	return std::to_string(EDITOR_VERSION_MAJOR) + "."
+		   + std::to_string(EDITOR_VERSION_MINOR) + "."
+		   + std::to_string(EDITOR_VERSION_PATCH);
+}
+
+int GetVREditorBuildNumber()
+{
+	return EDITOR_BUILD_NUMBER;
+}
+
+std::string GetVREditorBuildTimestamp()
+{
+	return EDITOR_BUILD_TIMESTAMP;
+}
+
+std::string GetVREditorBuildInfo()
+{
+	std::string Result = "build " + std::to_string(EDITOR_BUILD_NUMBER);
+	if (EDITOR_BUILD_BRANCH_OFFSET > 0)
+	{
+		Result += "+" + std::to_string(EDITOR_BUILD_BRANCH_OFFSET)
+			+ " (" + std::string(EDITOR_GIT_BRANCH) + ", "
+			+ EDITOR_GIT_HASH + std::string(EDITOR_GIT_DIRTY ? "-dirty" : "") + ")";
+	}
+	else if (EDITOR_GIT_DIRTY)
+	{
+		Result += " (dirty)";
+	}
+	return Result;
+}
+
+std::string GetVREditorFullVersion()
+{
+	return "VR PointCloud Editor " + GetVREditorVersion() + " " + GetVREditorBuildInfo();
+}
+
+bool bShouldOpenAboutWindow = false;
+void ShowAboutDialog()
+{
+	bShouldOpenAboutWindow = true;
+}
+
+void RenderAboutWindow()
+{
+	if (bShouldOpenAboutWindow)
+	{
+		ImGui::OpenPopup("About");
+		bShouldOpenAboutWindow = false;
+	}
+
+	float PopupW = 450.0f;
+	float PopupH = 135.0f;
+	ImGui::SetNextWindowSize(ImVec2(PopupW, PopupH));
+	if (ImGui::BeginPopupModal("About", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove))
+	{
+		int WindowW = 0;
+		int WindowH = 0;
+		APPLICATION.GetMainWindow()->GetSize(&WindowW, &WindowH);
+
+		ImGui::SetWindowPos(ImVec2(WindowW / 2.0f - ImGui::GetWindowWidth() / 2.0f, WindowH / 2.0f - ImGui::GetWindowHeight() / 2.0f));
+
+		std::string Text = GetVREditorFullVersion();
+		ImVec2 TextSize = ImGui::CalcTextSize(Text.c_str());
+		ImGui::SetCursorPosX(PopupW / 2.0f - TextSize.x / 2.0f);
+		ImGui::Text(Text.c_str());
+
+		ImGui::Separator();
+
+		Text = "To submit a bug report or provide feedback, ";
+		TextSize = ImGui::CalcTextSize(Text.c_str());
+		ImGui::SetCursorPosX(PopupW / 2.0f - TextSize.x / 2.0f);
+		ImGui::Text(Text.c_str());
+
+		Text = "please email me at kberegovyi@ccom.unh.edu.";
+		TextSize = ImGui::CalcTextSize(Text.c_str());
+		ImGui::SetCursorPosX(PopupW / 2.0f - TextSize.x / 2.0f);
+		ImGui::Text(Text.c_str());
+
+		ImGui::Separator();
+
+		Text = "UNH CCOM";
+		TextSize = ImGui::CalcTextSize(Text.c_str());
+		ImGui::SetCursorPosX(PopupW / 2.0f - TextSize.x / 2.0f);
+		ImGui::Text(Text.c_str());
+
+		ImGui::SetCursorPosX(PopupW / 2.0f - 210.0f / 2.0f);
+		ImGui::SetNextItemWidth(210);
+		if (ImGui::Button("Close", ImVec2(210.0f, 20.0f)))
+			ImGui::CloseCurrentPopup();
+
+		ImGui::EndPopup();
+	}
+}
+
 void ShowTransformConfiguration(FEObject* Object, FETransformComponent* Transform, float PositionStep = 0.001f)
 {
 	// ********************* POSITION *********************
@@ -172,6 +269,21 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			ShowTransformConfiguration(PointCloudEntity, &PointCloudTransform, 0.01f);
 		}*/
 
+		if (ImGui::BeginMainMenuBar())
+		{
+			if (ImGui::BeginMenu("Info"))
+			{
+				if (ImGui::MenuItem("About..."))
+					ShowAboutDialog();
+
+				ImGui::EndMenu();
+			}
+
+			ImGui::EndMainMenuBar();
+		}
+
+		RenderAboutWindow();
+
 		static int MainWindowRenderingMode = 0;
 		if (ImGui::RadioButton("Mirror VR View", MainWindowRenderingMode == 0))
 		{
@@ -225,6 +337,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			bool bReloadButtonEnabled = !SCENE_RESOURCES.GetLastLoadedPointCloudFilePath().empty();
 			if (!bReloadButtonEnabled)
 				ImGui::BeginDisabled();
+
 			if (ImGui::Button("Reload current point cloud"))
 				SCENE_RESOURCES.ReloadCurrentPointCloud();
 

@@ -70,6 +70,9 @@ VRManager::VRManager()
 
 void VRManager::Initialize()
 {
+	if (!ENGINE.IsVREnabled())
+		return;
+	
 	FEOpenXR_INPUT.AddControllerStateChangeCallback(&VRManager::OnControllerConnectionStatusChangeCallBack);
 
 	FEOpenXR_INPUT.SetRightTriggerPressCallBack(&VRManager::OnRightTriggerPress);
@@ -518,7 +521,7 @@ void VRManager::RotateTowardCamera(FEEntity* Entity, FEEntity* CameraEntity)
 		return;
 
 	FEAABB SelectedOriginalAABB = Entity->GetParentScene()->GetEntityAABB(Entity, true);
-	glm::vec3 OriginalAABBNormal = glm::normalize(SelectedOriginalAABB.GetAproximateForwardDirection());
+	glm::vec3 OriginalAABBNormal = glm::normalize(SelectedOriginalAABB.GetApproximateForwardDirection());
 	glm::quat RotationQuaternion = glm::rotation(OriginalAABBNormal, DirectionToCamera);
 	EntityTransform.SetQuaternion(RotationQuaternion, FE_WORLD_SPACE);
 }

@@ -64,8 +64,8 @@ void SceneResources::SetupScene()
 	};
 
 	ifd::FileDialog::Instance().DeleteTexture = [](void* TexturePointer) {
-		GLuint texID = (GLuint)((uintptr_t)TexturePointer);
-		glDeleteTextures(1, &texID);
+		GLuint TextureID = (GLuint)((uintptr_t)TexturePointer);
+		glDeleteTextures(1, &TextureID);
 	};
 
 	DeletePointsComputeShader = RESOURCE_MANAGER.CreateShader("DeletePointsComputeShader",
@@ -87,7 +87,7 @@ void SceneResources::InitResourses()
 	FEMesh* CylinderMesh = RESOURCE_MANAGER.LoadFEMesh("Resources//Cylinder.model");
 
 	FEShader* SolidColorShader = RESOURCE_MANAGER.GetShader("6917497A5E0C05454876186F"/*"FESolidColorShader"*/);
-	// FIX ME: Work of this shader is not correct.
+	// FE_FIX_ME: Work of this shader is not correct.
 	SolidColorShader->UpdateUniformData("BrightnessFactor", 1.0f);
 
 	FEMaterial* GreenMaterial = RESOURCE_MANAGER.CreateMaterial();

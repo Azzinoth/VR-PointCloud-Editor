@@ -1,38 +1,27 @@
 #include "SubSystems/VRManager/VRManager.h"
 using namespace FocalEngine;
 
-#include "EditorVersion.h"
+#include "VersionInfo/VR_PointCloud_Editor_Version.h"
+#include "VersionInfo/FEVersionInfo.h"
+FE_DEFINE_VERSION_INFO(VR_PointCloud_Editor_)
 std::string GetVREditorVersion()
 {
-	return std::to_string(EDITOR_VERSION_MAJOR) + "."
-		   + std::to_string(EDITOR_VERSION_MINOR) + "."
-		   + std::to_string(EDITOR_VERSION_PATCH);
+	return GetVR_PointCloud_Editor_VersionInfo().GetVersion();
 }
 
 int GetVREditorBuildNumber()
 {
-	return EDITOR_BUILD_NUMBER;
+	return GetVR_PointCloud_Editor_VersionInfo().BuildNumber;
 }
 
 std::string GetVREditorBuildTimestamp()
 {
-	return EDITOR_BUILD_TIMESTAMP;
+	return GetVR_PointCloud_Editor_VersionInfo().BuildTimestamp;
 }
 
 std::string GetVREditorBuildInfo()
 {
-	std::string Result = "build " + std::to_string(EDITOR_BUILD_NUMBER);
-	if (EDITOR_BUILD_BRANCH_OFFSET > 0)
-	{
-		Result += "+" + std::to_string(EDITOR_BUILD_BRANCH_OFFSET)
-			+ " (" + std::string(EDITOR_GIT_BRANCH) + ", "
-			+ EDITOR_GIT_HASH + std::string(EDITOR_GIT_DIRTY ? "-dirty" : "") + ")";
-	}
-	else if (EDITOR_GIT_DIRTY)
-	{
-		Result += " (dirty)";
-	}
-	return Result;
+	return GetVR_PointCloud_Editor_VersionInfo().GetBuildInfo();
 }
 
 std::string GetVREditorFullVersion()

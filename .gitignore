@@ -18,6 +18,7 @@
 imgui.ini
 *.txt
 cmake_install.cmake
+VR_PointCloud_Editor_Version.h
 
 #Folders
 Debug/

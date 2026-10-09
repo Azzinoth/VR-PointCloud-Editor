@@ -42,9 +42,9 @@ configure_file(${ENGINE_FOLDER}/ResourceManager/Config.h.in ${ENGINE_FOLDER}/Res
 if(USE_STATIC_RUNTIME)
     # Add standard FocalEngine native scripts
     # TODO: This should be done in the FocalEngine project, or make it simpler to add it user projects
-    file(GLOB Unpacked_NativeScript_2B7956623302254F620A675F_SRC
-	    "SubSystems/FocalEngine/Resources/UserScriptsData/ExtractedScriptModules/2B7956623302254F620A675F/FirstScript.h"
-	    "SubSystems/FocalEngine/Resources/UserScriptsData/ExtractedScriptModules/2B7956623302254F620A675F/FirstScript.cpp"
+    file(GLOB Unpacked_NativeScript_e1ff1a0e-000b-5f87-9b08-dcec07635c17_SRC
+	    "SubSystems/FocalEngine/Resources/UserScriptsData/ExtractedScriptModules/e1ff1a0e-000b-5f87-9b08-dcec07635c17/FirstScript.h"
+	    "SubSystems/FocalEngine/Resources/UserScriptsData/ExtractedScriptModules/e1ff1a0e-000b-5f87-9b08-dcec07635c17/FirstScript.cpp"
     )
 endif()
 
@@ -82,7 +82,7 @@ link_directories(${GLFW_LIB_DIR})
 set(EXTRACTED_NATIVE_SCRIPTS "")
 if(USE_STATIC_RUNTIME)
 	list(APPEND EXTRACTED_NATIVE_SCRIPTS
-		${Unpacked_NativeScript_2B7956623302254F620A675F_SRC}
+		${Unpacked_NativeScript_e1ff1a0e-000b-5f87-9b08-dcec07635c17_SRC}
 	)
 
     add_definitions(-DGLEW_STATIC)
@@ -101,14 +101,15 @@ add_executable(VR-PointCloud-Editor WIN32
 )
 
 target_link_libraries(VR-PointCloud-Editor 
-    PRIVATE 
+    PRIVATE
+        FEBasicApplication
         FocalEngine
-	
+
 )
 
 source_group("Source Files" FILES ${Main_SRC})
 if(USE_STATIC_RUNTIME)
-	source_group("Source Files/FocalEngine/2B7956623302254F620A675F" FILES ${EXTRACTED_NATIVE_SCRIPTS})
+	source_group("Source Files/FocalEngine/e1ff1a0e-000b-5f87-9b08-dcec07635c17" FILES ${EXTRACTED_NATIVE_SCRIPTS})
 endif()
 
 source_group("Source Files/SubSystems/ImGuiVirtualKeyboard" FILES ${ImGuiVirtualKeyboard_SRC})
@@ -141,7 +142,7 @@ add_custom_command(TARGET VR-PointCloud-Editor PRE_BUILD
         -D PROJECT_VERSION_PREFIX=VR_PointCloud_Editor_
         -D PROJECT_VERSION_MAJOR=0
         -D PROJECT_VERSION_MINOR=1
-        -D PROJECT_VERSION_PATCH=2
+        -D PROJECT_VERSION_PATCH=3
         -D PROJECT_VERSION_DIR=${CMAKE_CURRENT_SOURCE_DIR}/VersionInfo
         -P ${CMAKE_CURRENT_SOURCE_DIR}/VersionInfo/UpdateProjectVersion.cmake
 )

@@ -24,10 +24,10 @@ FEEntity* SceneResources::GetMainCamera()
 
 void SceneResources::SetupScene()
 {
-	MainScene = SCENE_MANAGER.CreateScene("Main scene", "", FESceneFlag::Active | FESceneFlag::Renderable | FESceneFlag::GameMode);
+	MainScene = SCENE_MANAGER.CreateScene("Main scene", FEUUID(), FESceneFlag::Active | FESceneFlag::Renderable | FESceneFlag::GameMode);
 	MainCamera = SCENE_RESOURCES.GetMainScene()->CreateEntity("Main camera");
 
-	FEPrefab* FreeCameraPrefab = RESOURCE_MANAGER.GetPrefab("4575527C773848040760656F");
+	FEPrefab* FreeCameraPrefab = RESOURCE_MANAGER.GetPrefab(FEEngineResourceIDs::FreeCameraPrefab);
 	std::vector<FEEntity*> AddedEntities = SCENE_MANAGER.InstantiatePrefab(FreeCameraPrefab, SCENE_RESOURCES.GetMainScene(), true);
 	MainCamera = AddedEntities[0];
 	CAMERA_SYSTEM.SetMainCamera(MainCamera);
@@ -80,13 +80,13 @@ void SceneResources::InitResourses()
 	FEMesh* ValveIndexLeftControllerMesh = RESOURCE_MANAGER.LoadFEMesh("Resources//ValveIndexLeftController.model");
 
 	FEMaterial* NewMaterial = RESOURCE_MANAGER.CreateMaterial();
-	NewMaterial->Shader = RESOURCE_MANAGER.GetShader("0800253C242B05321A332D09"/*"FEPBRShader"*/);
+	NewMaterial->Shader = RESOURCE_MANAGER.GetShader(FEEngineResourceIDs::PBRShader);
 	NewMaterial->SetAlbedoMap(RESOURCE_MANAGER.LoadFETexture("Resources//ValveIndexControllerAlbedo.texture"));
 
 	// Cylinders
 	FEMesh* CylinderMesh = RESOURCE_MANAGER.LoadFEMesh("Resources//Cylinder.model");
 
-	FEShader* SolidColorShader = RESOURCE_MANAGER.GetShader("6917497A5E0C05454876186F"/*"FESolidColorShader"*/);
+	FEShader* SolidColorShader = RESOURCE_MANAGER.GetShader(FEEngineResourceIDs::SolidColorShader);
 	// FE_FIX_ME: Work of this shader is not correct.
 	SolidColorShader->UpdateUniformData("BrightnessFactor", 1.0f);
 

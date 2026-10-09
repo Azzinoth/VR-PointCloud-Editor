@@ -343,8 +343,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 				glViewport(0, 0, APPLICATION.GetMainWindow()->GetWidth(), APPLICATION.GetMainWindow()->GetHeight());
 				FE_GL_ERROR(glBindFramebuffer(GL_FRAMEBUFFER, 0));
 
-				FEMesh* ScreenQuad = RESOURCE_MANAGER.GetMesh("1Y251E6E6T78013635793156"/*"plane"*/);
-				FEShader* ScreenQuadShader = RESOURCE_MANAGER.GetShader("7933272551311F3A1A5B2363");
+				FEMesh* ScreenQuad = RESOURCE_MANAGER.GetMesh(FEEngineResourceIDs::PlaneMesh);
+				FEShader* ScreenQuadShader = RESOURCE_MANAGER.GetShader(FEEngineResourceIDs::ScreenQuadShader);
 
 				FinalSceneTexture->Bind(0);
 				ScreenQuadShader->Start();

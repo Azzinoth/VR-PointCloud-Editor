@@ -273,7 +273,7 @@ namespace ifd {
 			float radius = i & 1 ? innerRadius : outerRadius;
 			window->DrawList->PathLineTo(ImVec2(center.x + radius * sin(i * angle), center.y - radius * cos(i * angle)));
 		}
-		window->DrawList->PathStroke(ImGui::ColorConvertFloat4ToU32(ImGui::GetStyle().Colors[ImGuiCol_Text]), true, 2.0f);
+		window->DrawList->PathStroke(ImGui::ColorConvertFloat4ToU32(ImGui::GetStyle().Colors[ImGuiCol_Text]), 2.0f, ImDrawFlags_Closed);
 
 		return ret;
 	}
@@ -299,7 +299,34 @@ namespace ifd {
 
 		float iconSize = size.y - g.FontSize * 2;
 		float iconPosX = pos.x + (size.x - iconSize) / 2.0f;
-		ImVec2 textSize = ImGui::CalcTextSize(label, 0, true, size.x);
+
+		// Only two lines of text fit below the icon, longer names would overlap the next row.
+		// Such names are shortened with "..." and the full name is shown in a tooltip.
+		std::string displayedLabel = label;
+		const float maxTextHeight = g.FontSize * 2 + 1.0f;
+		if (ImGui::CalcTextSize(label, 0, false, size.x).y > maxTextHeight) {
+			std::vector<size_t> charEnds;
+			for (const char* c = label; *c != 0;) {
+				unsigned int codepoint = 0;
+				c += ImTextCharFromUtf8(&codepoint, c, nullptr);
+				charEnds.push_back(c - label);
+			}
+
+			size_t low = 0, high = charEnds.size();
+			while (low < high) {
+				size_t mid = (low + high + 1) / 2;
+				std::string candidate = std::string(label, charEnds[mid - 1]) + "...";
+				if (ImGui::CalcTextSize(candidate.c_str(), 0, false, size.x).y <= maxTextHeight)
+					low = mid;
+				else
+					high = mid - 1;
+			}
+			displayedLabel = (low > 0 ? std::string(label, charEnds[low - 1]) : std::string()) + "...";
+
+			if (hovered)
+				ImGui::SetTooltip("%s", label);
+		}
+		ImVec2 textSize = ImGui::CalcTextSize(displayedLabel.c_str(), 0, false, size.x);
 
 		
 		if (hovered || active || isSelected)
@@ -319,7 +346,7 @@ namespace ifd {
 		} else
 			window->DrawList->AddImage(icon, ImVec2(iconPosX, pos.y), ImVec2(iconPosX + iconSize, pos.y + iconSize));
 		
-		window->DrawList->AddText(g.Font, g.FontSize, ImVec2(pos.x + (size.x-textSize.x) / 2.0f, pos.y + iconSize), ImGui::ColorConvertFloat4ToU32(ImGui::GetStyle().Colors[ImGuiCol_Text]), label, 0, size.x);
+		window->DrawList->AddText(g.Font, g.FontSize, ImVec2(pos.x + (size.x-textSize.x) / 2.0f, pos.y + iconSize), ImGui::ColorConvertFloat4ToU32(ImGui::GetStyle().Colors[ImGuiCol_Text]), displayedLabel.c_str(), 0, size.x);
 
 
 		float lastButtomPos = ImGui::GetItemRectMax().x;

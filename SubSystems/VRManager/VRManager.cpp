@@ -121,7 +121,7 @@ void VRManager::InitializeSphereCursor()
 	SphereCursorMeshes[1] = SphereCursorMeshes[0];
 	SphereCursorMeshes[2] = SphereCursorMeshes[1];
 
-	FEShader* SolidColorShader = RESOURCE_MANAGER.GetShader("6917497A5E0C05454876186F"/*"FESolidColorShader"*/);
+	FEShader* SolidColorShader = RESOURCE_MANAGER.GetShader(FEEngineResourceIDs::SolidColorShader);
 	SphereCursorMaterial = RESOURCE_MANAGER.CreateMaterial();
 	SphereCursorMaterial->Shader = SolidColorShader;
 	SphereCursorMaterial->SetBaseColor(glm::vec3(0.9f, 0.9f, 0.9f));
@@ -930,17 +930,17 @@ void VRManager::ReleaseEntity()
 	if (CurrentEntityToManipulate == nullptr)
 		return;
 
-	FENaiveSceneGraphNode* NodeToManipulate = SCENE_RESOURCES.GetMainScene()->SceneGraph.GetNodeByEntityID(CurrentEntityToManipulate->GetObjectID());
-	FENaiveSceneGraphNode* ControllerNode = SCENE_RESOURCES.GetMainScene()->SceneGraph.GetNodeByEntityID(OpenXR_MANAGER.GetLeftControllerEntity()->GetObjectID());
+	FENaiveSceneGraphNode* NodeToManipulate = SCENE_RESOURCES.GetMainScene()->SceneGraph.GetNodeByEntityID(CurrentEntityToManipulate->GetID());
+	FENaiveSceneGraphNode* ControllerNode = SCENE_RESOURCES.GetMainScene()->SceneGraph.GetNodeByEntityID(OpenXR_MANAGER.GetLeftControllerEntity()->GetID());
 
 	if (NodeToManipulate == nullptr || ControllerNode == nullptr)
 		return;
 
 	// If the controller node is not a parent of the node to manipulate, we cannot release it
-	if (ControllerNode->GetChild(NodeToManipulate->GetObjectID()) == nullptr)
+	if (ControllerNode->GetChild(NodeToManipulate->GetID()) == nullptr)
 		return;
 
-	SCENE_RESOURCES.GetMainScene()->SceneGraph.MoveNode(NodeToManipulate->GetObjectID(), SCENE_RESOURCES.GetMainScene()->SceneGraph.GetRoot()->GetObjectID(), true);
+	SCENE_RESOURCES.GetMainScene()->SceneGraph.MoveNode(NodeToManipulate->GetID(), SCENE_RESOURCES.GetMainScene()->SceneGraph.GetRoot()->GetID(), true);
 }
 
 void VRManager::SetScalingWithControllers(bool bNewValue)
